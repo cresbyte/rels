@@ -1,0 +1,93 @@
+services:
+  db:
+    image: postgres:17
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    env_file:
+      - ./.env
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=backend
+    ports:
+      - "5432:5432"
+    restart: always
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+    restart: always
+
+  web:
+    build: .
+    #command: daphne -b 0.0.0.0 -p 8000 backend.asgi:application
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+    env_file:
+      - ./.env
+    environment:
+      - DEBUG=True
+      - DB_HOST=db
+      - DB_NAME=backend
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - REDIS_HOST=redis
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    restart: always
+
+  celery:
+    build: .
+    command: celery -A backend worker -l INFO
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+      - redis
+      - web
+    env_file:
+      - ./.env
+    environment:
+      - DEBUG=True
+      - DB_HOST=db
+      - DB_NAME=backend
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - REDIS_HOST=redis
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    restart: always
+
+  celery-beat:
+    build: .
+    command: celery -A backend beat -l INFO
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+      - redis
+      - web
+    env_file:
+      - ./.env
+    environment:
+      - DEBUG=True
+      - DB_HOST=db
+      - DB_NAME=backend
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - REDIS_HOST=redis
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    restart: always
+
+volumes:
+  postgres_data:

@@ -1,0 +1,38 @@
+<svg width="240" height="160" viewBox="0 0 240 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Abstract decorative elements -->
+  <circle cx="200" cy="40" r="60" fill="rgba(255, 255, 255, 0.05)" />
+  <circle cx="50" cy="130" r="40" fill="rgba(255, 255, 255, 0.04)" />
+  
+  <!-- Dashboard visualization elements -->
+  <g transform="translate(110, 75)">
+    <!-- Cards/widgets -->
+    <rect x="-60" y="-30" width="30" height="20" rx="4" fill="rgba(255, 255, 255, 0.2)" />
+    <rect x="-60" y="0" width="30" height="20" rx="4" fill="rgba(255, 255, 255, 0.15)" />
+    <rect x="-60" y="30" width="30" height="20" rx="4" fill="rgba(255, 255, 255, 0.1)" />
+    
+    <!-- Chart element -->
+    <rect x="-20" y="-30" width="70" height="70" rx="6" fill="rgba(255, 255, 255, 0.15)" />
+    <path d="M-10 20 L0 0 L10 15 L20 5 L30 25 L40 10" stroke="rgba(255, 255, 255, 0.6)" stroke-width="2" fill="none" stroke-linecap="round" />
+    
+    <!-- Circular progress -->
+    <circle cx="80" cy="5" r="25" stroke="rgba(255, 255, 255, 0.1)" stroke-width="4" fill="none" />
+    <path 
+      d="M80,5 m-21,0 a21,21 0 1,1 42,0" 
+      stroke="rgba(255, 255, 255, 0.6)" 
+      stroke-width="4"
+      stroke-linecap="round" 
+      fill="none" 
+    />
+    
+    <!-- Stats -->
+    <rect x="60" y="-30" width="40" height="15" rx="2" fill="rgba(255, 255, 255, 0.2)" />
+  </g>
+  
+  <!-- Small decorative dots -->
+  <circle cx="40" cy="40" r="1.5" fill="rgba(255, 255, 255, 0.4)" />
+  <circle cx="50" cy="35" r="1" fill="rgba(255, 255, 255, 0.4)" />
+  <circle cx="60" cy="42" r="1" fill="rgba(255, 255, 255, 0.4)" />
+  <circle cx="180" cy="120" r="1.5" fill="rgba(255, 255, 255, 0.4)" />
+  <circle cx="190" cy="130" r="1" fill="rgba(255, 255, 255, 0.4)" />
+  <circle cx="175" cy="135" r="1" fill="rgba(255, 255, 255, 0.4)" />
+</svg> 
