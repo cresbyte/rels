@@ -3,7 +3,7 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "./auth/AuthContext";
 import { CircularProgress, Box } from "@mui/material";
 
-function PrivateRoute({ children }) {
+function PublicRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
 
   // Show loading indicator while checking authentication
@@ -22,8 +22,8 @@ function PrivateRoute({ children }) {
     );
   }
 
-  // Redirect to login if not authenticated
-  return isAuthenticated ? children : <Navigate to="/login" />;
+  // Redirect to dashboard if already authenticated
+  return !isAuthenticated ? children : <Navigate to="/dashboard" />;
 }
 
-export default PrivateRoute;
+export default PublicRoute;

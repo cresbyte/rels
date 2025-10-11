@@ -1,22 +1,22 @@
 import React from "react";
 import { GoogleLogin } from "@react-oauth/google";
 import axios from "axios";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "./AuthContext";
 import { useNavigate } from "react-router-dom";
-import { useApi } from "../context/ApiContext";
+import { Box } from "@mui/material";
 
 
 const GoogleLoginButton = () => {
   const { setUser, setError } = useAuth();
   const navigate = useNavigate();
-  const { api } = useApi();
 
   const handleSuccess = async (credentialResponse) => {
     try {
       console.log("Google credential response:", credentialResponse);
 
       // Send ID token to backend
-      const response = await api.post(`/accounts/google-login/`, {
+      const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+      const response = await axios.post(`${API_URL}/accounts/google-login/`, {
         id_token: credentialResponse.credential,
       });
 
@@ -36,15 +36,10 @@ const GoogleLoginButton = () => {
         email: userData.email,
         first_name: userData.first_name,
         last_name: userData.last_name,
-        full_name: userData.full_name,
-        role: userData.role,
+     
         is_verified: userData.is_verified,
         profile_picture_url: userData.profile_picture_url,
-        phone: userData.phone || "",
-        county: userData.county || "",
-        subcounty: userData.subcounty || "",
-        area: userData.area || "",
-        bio: userData.bio || "",
+
       });
       
       // Redirect based on user role
@@ -66,17 +61,18 @@ const GoogleLoginButton = () => {
   };
 
   return (
-    <div className="w-full flex justify-center">
+    <Box sx={{ width: "100%", display: "flex", justifyContent: "center", border:"1px solid red" }}>
       <GoogleLogin
         onSuccess={handleSuccess}
         onError={handleError}
         useOneTap
-        shape="pill"
-        width="300"
+        shape="rectangular"
+        width="100%"
         text="continue_with"
-        logo_alignment="center"
+        logo_alignment="left"
+        theme="dark"
       />
-    </div>
+    </Box>
   );
 };
 

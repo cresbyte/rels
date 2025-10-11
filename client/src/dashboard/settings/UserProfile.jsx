@@ -16,18 +16,17 @@ import {
   CircularProgress,
 } from "@mui/material";
 import { Edit, Save, CloudUpload, KeyRound, ArrowLeft } from "lucide-react";
-import api from "../../api/axios";
+import { useApi } from "../../api/axios";
 
 function UserProfile() {
+  const { api } = useApi();
   const [user, setUser] = useState({
     id: null,
     email: "",
     first_name: "",
     last_name: "",
-    profile_pic: null,
-    role: "",
-    organization: null,
-    organization_name: "",
+    profile_picture: null,
+    profile_picture_url: null,
   });
 
   const [loading, setLoading] = useState(false);
@@ -53,12 +52,12 @@ function UserProfile() {
   const fetchUserData = async () => {
     setLoading(true);
     try {
-      const response = await api.get("users/me/");
+      const response = await api.get("me/");
       setUser(response.data);
 
       // Handle profile picture URL correctly
-      if (response.data.profile_pic) {
-        setProfilePicPreview(response.data.profile_pic);
+      if (response.data.profile_picture_url) {
+        setProfilePicPreview(response.data.profile_picture_url);
       }
     } catch (error) {
       console.error("Failed to fetch user data", error);
@@ -92,17 +91,18 @@ function UserProfile() {
 
     try {
       const formData = new FormData();
-      formData.append("profile_pic", profilePicFile);
+      formData.append("profile_picture", profilePicFile);
 
-      const response = await api.patch(`users/${user.id}/`, formData, {
+      const response = await api.patch("accounts/me/", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
 
       // Update user state with new data
-      if (response.data.profile_pic) {
-        setUser({ ...user, profile_pic: response.data.profile_pic });
+      if (response.data.profile_picture_url) {
+        setUser({ ...user, profile_picture_url: response.data.profile_picture_url });
+        setProfilePicPreview(response.data.profile_picture_url);
       }
 
       // Show temporary success message
@@ -135,7 +135,7 @@ function UserProfile() {
 
       // We don't need to handle profile pic here anymore since it's auto-uploaded
 
-      await api.patch(`users/${user.id}/`, formData, {
+      await api.patch("me/", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
@@ -163,7 +163,7 @@ function UserProfile() {
     }
 
     try {
-      await api.post("users/change-password/", {
+      await api.post("change-password/", {
         current_password: passwordData.current_password,
         new_password: passwordData.new_password,
       });
@@ -296,9 +296,7 @@ function UserProfile() {
                 align="center"
                 sx={{ mb: 3 }}
               >
-                {user.role &&
-                  user.role.charAt(0).toUpperCase() + user.role.slice(1)}{" "}
-                at {user.organization_name}
+                {user.email}
               </Typography>
 
               <Button
@@ -335,21 +333,19 @@ function UserProfile() {
             </CardContent>
           </Card>
 
-          {/* Organization Info Card */}
+          {/* Account Info Card */}
           <Card variant="outlined">
             <CardContent>
               <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2 }}>
-                Organization Details
+                Account Information
               </Typography>
 
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                <strong>Organization:</strong> {user.organization_name}
+                <strong>Email:</strong> {user.email}
               </Typography>
 
               <Typography variant="body2" color="text.secondary">
-                <strong>Your Role:</strong>{" "}
-                {user.role &&
-                  user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                <strong>Member since:</strong> {user.date_joined ? new Date(user.date_joined).toLocaleDateString() : 'N/A'}
               </Typography>
             </CardContent>
           </Card>

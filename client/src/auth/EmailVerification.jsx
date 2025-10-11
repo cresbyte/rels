@@ -11,7 +11,7 @@ import {
 } from "@mui/material";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { CheckCircle, Error, Email, ArrowForward } from "@mui/icons-material";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "./auth/AuthContext";
 
 const EmailVerification = () => {
   const [searchParams] = useSearchParams();
@@ -50,35 +50,23 @@ const EmailVerification = () => {
       }
 
       try {
-        const result = await verifyEmail(token);
+        await verifyEmail(token);
         hasVerifiedRef.current = true;
 
-        if (result.success) {
-          setVerificationState({
-            loading: false,
-            success: true,
-            error: "",
-            message:
-              result.message ||
-              "Email verified successfully! You can now access your account.",
-          });
+        setVerificationState({
+          loading: false,
+          success: true,
+          error: "",
+          message: "Email verified successfully! You can now access your account.",
+        });
 
-          // Set redirecting flag to prevent any further state changes
-          isRedirectingRef.current = true;
+        // Set redirecting flag to prevent any further state changes
+        isRedirectingRef.current = true;
 
-          // Redirect to dashboard after showing success message
-          setTimeout(() => {
-            navigate("/dashboard", { replace: true });
-          }, 2000);
-        } else {
-          setVerificationState({
-            loading: false,
-            success: false,
-            error:
-              result.error || "Email verification failed. Please try again.",
-            message: "",
-          });
-        }
+        // Redirect to dashboard after showing success message
+        setTimeout(() => {
+          navigate("/dashboard", { replace: true });
+        }, 2000);
       } catch (error) {
         hasVerifiedRef.current = true;
         setVerificationState({

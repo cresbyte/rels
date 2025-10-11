@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "./auth/AuthContext";
 import {
   TextField,
   Button,
@@ -21,7 +21,6 @@ import {
   Tooltip,
 } from "@mui/material";
 import {
-  ArrowBack,
   Person,
   Business,
   Email,
@@ -32,6 +31,7 @@ import {
   CheckCircle,
   Error,
 } from "@mui/icons-material";
+import GoogleLoginButton from "./auth/GoogleLogin";
 
 function Register() {
   const [formData, setFormData] = useState({
@@ -85,18 +85,14 @@ function Register() {
     });
 
     try {
-      const response = await register(formData);
-      if (response.success) {
-        // Navigate to registration success page with email and message
-        navigate("/register-success", {
-          state: {
-            email: formData.email,
-            message:
-              response.message ||
-              "Registration successful! Please check your email to verify your account.",
-          },
-        });
-      }
+      await register(formData);
+      // Navigate to registration success page with email and message
+      navigate("/register-success", {
+        state: {
+          email: formData.email,
+          message: "Registration successful! Please check your email to verify your account.",
+        },
+      });
     } catch (err) {
       if (err.response && err.response.data) {
         const backendErrors = err.response.data;
@@ -142,146 +138,38 @@ function Register() {
         minHeight: "100vh",
         display: "flex",
         flexDirection: "column",
-        bgcolor: "#ffffff",
-        position: "relative",
-        overflow: "hidden",
+        bgcolor: "#1a1a1a",
+        color: "white",
       }}
     >
-      {/* Animated Orbs */}
-      <Box
-        sx={{
-          position: "fixed",
-          top: "15%",
-          left: "10%",
-          width: "250px",
-          height: "250px",
-          borderRadius: "50%",
-          background:
-            "radial-gradient(circle, rgba(139, 92, 246, 0.4) 0%, transparent 70%)",
-          filter: "blur(40px)",
-          animation:
-            "orbitTopLeft 20s ease-in-out infinite, glow 6s ease-in-out infinite",
-          zIndex: -1,
-        }}
-      />
-      <Box
-        sx={{
-          position: "fixed",
-          bottom: "20%",
-          right: "10%",
-          width: "300px",
-          height: "300px",
-          borderRadius: "50%",
-          background:
-            "radial-gradient(circle, rgba(255, 105, 180, 0.35) 0%, transparent 70%)",
-          filter: "blur(45px)",
-          animation:
-            "orbitBottomRight 24s ease-in-out infinite, glow 8s ease-in-out infinite",
-          zIndex: -1,
-        }}
-      />
-      <Box
-        sx={{
-          position: "fixed",
-          top: "60%",
-          left: "15%",
-          width: "200px",
-          height: "200px",
-          borderRadius: "50%",
-          background:
-            "radial-gradient(circle, rgba(0, 191, 255, 0.3) 0%, transparent 70%)",
-          filter: "blur(35px)",
-          animation:
-            "orbitMiddleLeft 22s ease-in-out infinite, glow 7s ease-in-out infinite",
-          zIndex: -1,
-        }}
-      />
-      {/* Gradient Overlay */}
-      <Box
-        sx={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          width: "100%",
-          height: "100%",
-          zIndex: -1,
-          opacity: 0.9,
-          background: `radial-gradient(circle at 20% 30%, rgba(139, 92, 246, 0.3) 0%, transparent 35%),
-                      radial-gradient(circle at 80% 20%, rgba(255, 105, 180, 0.3) 0%, transparent 35%),
-                      radial-gradient(circle at 50% 50%, rgba(0, 191, 255, 0.2) 0%, transparent 40%),
-                      radial-gradient(circle at 80% 80%, rgba(186, 104, 200, 0.25) 0%, transparent 30%)`,
-        }}
-      />
-
-      {/* Header */}
+      {/* Header with Logo */}
       <Box
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
           p: 3,
-          position: "relative",
-          zIndex: 2,
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <Box
-            sx={{
-              width: 40,
-              height: 40,
-              borderRadius: 2,
-              background: "linear-gradient(135deg, #8b5cf6, #d946ef)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              boxShadow: "0 4px 12px rgba(139, 92, 246, 0.3)",
-            }}
-          >
-            <Typography
-              variant="h5"
-              component="span"
-              sx={{
-                color: "white",
-                fontWeight: "bold",
-              }}
-            >
-              O
-            </Typography>
-          </Box>
+        <Box 
+          sx={{ 
+            display: "flex", 
+            alignItems: "center", 
+            gap: 1,
+            cursor: "pointer"
+          }}
+          onClick={() => navigate("/")}
+        >
           <Typography
             variant="h5"
             fontWeight="bold"
             sx={{
-              background: "linear-gradient(135deg, #8b5cf6, #d946ef)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
+              color: "white",
             }}
           >
-            Opaige
+            TRAE
           </Typography>
         </Box>
-
-        <Button
-          variant="outlined"
-          startIcon={<ArrowBack />}
-          onClick={() => navigate("/")}
-          sx={{
-            borderRadius: "50px",
-            boxShadow: "0 2px 8px rgba(139, 92, 246, 0.2)",
-            px: 2,
-            borderColor: "rgba(139, 92, 246, 0.5)",
-            color: "#8b5cf6",
-            "&:hover": {
-              borderColor: "#8b5cf6",
-              backgroundColor: "rgba(139, 92, 246, 0.04)",
-              boxShadow: "0 4px 12px rgba(139, 92, 246, 0.3)",
-              transform: "translateY(-2px)",
-            },
-            transition: "all 0.3s ease",
-          }}
-        >
-          Back to Home
-        </Button>
       </Box>
 
       <Container
@@ -292,579 +180,281 @@ function Register() {
           alignItems: "center",
           justifyContent: "center",
           py: 4,
-          position: "relative",
-          zIndex: 1,
         }}
       >
-        <Slide direction="up" in={true} mountOnEnter unmountOnExit>
-          <Paper
-            elevation={0}
-            sx={{
-              p: { xs: 3, sm: 4 },
-              borderRadius: 4,
-              backdropFilter: "blur(10px)",
-              border: "1px solid rgba(255, 255, 255, 0.2)",
-              background: "rgba(255, 255, 255, 0.7)",
-              transition: "all 0.3s ease-in-out",
-              "&:hover": {
-                boxShadow: "0 12px 48px rgba(139, 92, 246, 0.2)",
-                transform: "translateY(-5px)",
-              },
-            }}
-          >
-            <Box sx={{ maxWidth: 600, mx: "auto" }}>
-              <Box sx={{ textAlign: "center", mb: 4 }}>
-                <Typography
-                  variant="h4"
-                  component="h1"
-                  sx={{
-                    fontWeight: 700,
-                    mb: 1,
-                    background:
-                      "linear-gradient(90deg, #8b5cf6, #d946ef, #ff69b4, #8b5cf6)",
-                    backgroundSize: "300% auto",
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
-                    animation: "gradientFlow 8s linear infinite",
-                  }}
-                >
-                  Create Your Account
-                </Typography>
-                <Typography
-                  variant="body1"
-                  sx={{
-                    mb: 3,
-                    color: "#555555",
-                    lineHeight: 1.7,
-                  }}
-                >
-                  Join Opaige CRM and transform your travel agency management
-                </Typography>
+        <Paper
+          elevation={0}
+          sx={{
+            p: 4,
+            width: "100%",
+            background: "#2a2a2a",
+            border: "1px solid #333",
+            maxWidth:"30rem"
 
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "center",
-                    gap: 2,
-                    mb: 3,
-                  }}
-                >
-                  <Chip
-                    icon={<CheckCircle sx={{ color: "#8b5cf6" }} />}
-                    label="Free Forever"
+          }}
+        >
+          <Box sx={{ maxWidth: 600, mx: "auto" }}>
+            <Box sx={{ textAlign: "center", mb: 4 }}>
+              <Typography
+                variant="h4"
+                component="h1"
+                sx={{
+                  fontWeight: 600,
+                  mb: 1,
+                  color: "white",
+                }}
+              >
+                Sign up
+              </Typography>
+            </Box>
+
+            {errors.organization_name && (
+              <Alert
+                severity="error"
+                sx={{
+                  mb: 3,
+                  bgcolor: "#d32f2f",
+                  color: "white",
+                }}
+              >
+                {errors.organization_name}
+              </Alert>
+            )}
+
+            {/* Social Sign In Buttons */}
+            <Box sx={{ width: "100%", mb: 3, display: "flex", flexDirection: "column", gap: 2 }}>
+              <GoogleLoginButton />
+            </Box>
+
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                width: "100%",
+                mb: 3,
+              }}
+            >
+              <Box sx={{ flex: 1, height: "1px", bgcolor: "#444" }} />
+              <Typography
+                variant="body2"
+                sx={{
+                  mx: 2,
+                  color: "#888",
+                }}
+              >
+                or with Email
+              </Typography>
+              <Box sx={{ flex: 1, height: "1px", bgcolor: "#444" }} />
+            </Box>
+
+            <Box component="form" onSubmit={handleSubmit}>
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12 }}>
+                  <TextField
+                    fullWidth
+                    label="Email"
+                    name="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    error={!!errors.email}
+                    helperText={errors.email}
+                    variant="outlined"
                     sx={{
-                      background: "rgba(255, 255, 255, 0.7)",
-                      color: "#555555",
-                      border: "1px solid rgba(255, 255, 255, 0.9)",
-                      backdropFilter: "blur(10px)",
-                      transition: "all 0.3s ease",
-                      "&:hover": {
-                        transform: "translateY(-2px)",
-                        boxShadow: "0 3px 8px rgba(0, 0, 0, 0.06)",
+                      "& .MuiOutlinedInput-root": {
+                        bgcolor: "#333",
+                        "& fieldset": {
+                          borderColor: "#555",
+                        },
+                        "&:hover fieldset": {
+                          borderColor: "#777",
+                        },
+                        "&.Mui-focused fieldset": {
+                          borderColor: "#4caf50",
+                        },
+                      },
+                      "& .MuiInputLabel-root": {
+                        color: "#888",
+                        "&.Mui-focused": {
+                          color: "#4caf50",
+                        },
+                      },
+                      "& .MuiInputBase-input": {
+                        color: "white",
                       },
                     }}
                   />
-                  <Chip
-                    icon={<CheckCircle sx={{ color: "#8b5cf6" }} />}
-                    label="No Credit Card Required"
-                    sx={{
-                      background: "rgba(255, 255, 255, 0.7)",
-                      color: "#555555",
-                      border: "1px solid rgba(255, 255, 255, 0.9)",
-                      backdropFilter: "blur(10px)",
-                      transition: "all 0.3s ease",
-                      "&:hover": {
-                        transform: "translateY(-2px)",
-                        boxShadow: "0 3px 8px rgba(0, 0, 0, 0.06)",
-                      },
-                    }}
-                  />
-                </Box>
-              </Box>
-
-              {errors.organization_name && (
-                <Alert
-                  severity="error"
-                  sx={{
-                    mb: 3,
-                    borderRadius: 2,
-                    bgcolor: "#e57373",
-                    "& .MuiAlert-icon": { color: "#ffffff" },
-                  }}
-                >
-                  {errors.organization_name}
-                </Alert>
-              )}
-
-              <Box component="form" onSubmit={handleSubmit}>
-                <Grid container spacing={2}>
-                  <Grid size={{ xs: 12 }}>
-                    <TextField
-                      fullWidth
-                      label="Organization Name"
-                      name="organization_name"
-                      value={formData.organization_name}
-                      onChange={handleChange}
-                      error={!!errors.organization_name}
-                      helperText={errors.organization_name}
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <Business sx={{ color: "#8b5cf6" }} />
-                          </InputAdornment>
-                        ),
-                        sx: { borderRadius: "16px" },
-                      }}
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          transition: "all 0.2s",
-                          "&:hover": {
-                            boxShadow: "0 2px 8px rgba(139, 92, 246, 0.2)",
-                          },
-                          "&.Mui-focused": {
-                            boxShadow: "0 4px 12px rgba(139, 92, 246, 0.3)",
-                            "& .MuiOutlinedInput-notchedOutline": {
-                              borderColor: "#8b5cf6",
-                            },
-                          },
-                        },
-                        "& .MuiInputLabel-root": {
-                          color: "#555555",
-                          "&.Mui-focused": {
-                            color: "#8b5cf6",
-                          },
-                        },
-                      }}
-                    />
-                  </Grid>
-
-                  <Grid size={{ xs: 12, sm: 6 }}>
-                    <TextField
-                      fullWidth
-                      label="First Name"
-                      name="first_name"
-                      value={formData.first_name}
-                      onChange={handleChange}
-                      error={!!errors.first_name}
-                      helperText={errors.first_name}
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <Person sx={{ color: "#8b5cf6" }} />
-                          </InputAdornment>
-                        ),
-                        sx: { borderRadius: "16px" },
-                      }}
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          transition: "all 0.2s",
-                          "&:hover": {
-                            boxShadow: "0 2px 8px rgba(139, 92, 246, 0.2)",
-                          },
-                          "&.Mui-focused": {
-                            boxShadow: "0 4px 12px rgba(139, 92, 246, 0.3)",
-                            "& .MuiOutlinedInput-notchedOutline": {
-                              borderColor: "#8b5cf6",
-                            },
-                          },
-                        },
-                        "& .MuiInputLabel-root": {
-                          color: "#555555",
-                          "&.Mui-focused": {
-                            color: "#8b5cf6",
-                          },
-                        },
-                      }}
-                    />
-                  </Grid>
-
-                  <Grid size={{ xs: 12, sm: 6 }}>
-                    <TextField
-                      fullWidth
-                      label="Last Name"
-                      name="last_name"
-                      value={formData.last_name}
-                      onChange={handleChange}
-                      error={!!errors.last_name}
-                      helperText={errors.last_name}
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <Person sx={{ color: "#8b5cf6" }} />
-                          </InputAdornment>
-                        ),
-                        sx: { borderRadius: "16px" },
-                      }}
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          transition: "all 0.2s",
-                          "&:hover": {
-                            boxShadow: "0 2px 8px rgba(139, 92, 246, 0.2)",
-                          },
-                          "&.Mui-focused": {
-                            boxShadow: "0 4px 12px rgba(139, 92, 246, 0.3)",
-                            "& .MuiOutlinedInput-notchedOutline": {
-                              borderColor: "#8b5cf6",
-                            },
-                          },
-                        },
-                        "& .MuiInputLabel-root": {
-                          color: "#555555",
-                          "&.Mui-focused": {
-                            color: "#8b5cf6",
-                          },
-                        },
-                      }}
-                    />
-                  </Grid>
-
-                  <Grid size={{ xs: 12 }}>
-                    <TextField
-                      fullWidth
-                      label="Email Address"
-                      name="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      error={!!errors.email}
-                      helperText={errors.email}
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <Email sx={{ color: "#8b5cf6" }} />
-                          </InputAdornment>
-                        ),
-                        sx: { borderRadius: "16px" },
-                      }}
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          transition: "all 0.2s",
-                          "&:hover": {
-                            boxShadow: "0 2px 8px rgba(139, 92, 246, 0.2)",
-                          },
-                          "&.Mui-focused": {
-                            boxShadow: "0 4px 12px rgba(139, 92, 246, 0.3)",
-                            "& .MuiOutlinedInput-notchedOutline": {
-                              borderColor: "#8b5cf6",
-                            },
-                          },
-                        },
-                        "& .MuiInputLabel-root": {
-                          color: "#555555",
-                          "&.Mui-focused": {
-                            color: "#8b5cf6",
-                          },
-                        },
-                      }}
-                    />
-                  </Grid>
-
-                  <Grid size={{ xs: 12, sm: 6 }}>
-                    <TextField
-                      fullWidth
-                      label="Password"
-                      name="password"
-                      type={showPassword ? "text" : "password"}
-                      value={formData.password}
-                      onChange={handleChange}
-                      error={!!errors.password}
-                      helperText={errors.password}
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <Lock sx={{ color: "#8b5cf6" }} />
-                          </InputAdornment>
-                        ),
-                        endAdornment: (
-                          <InputAdornment position="end">
-                            <IconButton
-                              onClick={() => setShowPassword(!showPassword)}
-                              edge="end"
-                            >
-                              {showPassword ? (
-                                <VisibilityOff sx={{ color: "#8b5cf6" }} />
-                              ) : (
-                                <Visibility sx={{ color: "#8b5cf6" }} />
-                              )}
-                            </IconButton>
-                          </InputAdornment>
-                        ),
-                        sx: { borderRadius: "16px" },
-                      }}
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          transition: "all 0.2s",
-                          "&:hover": {
-                            boxShadow: "0 2px 8px rgba(139, 92, 246, 0.2)",
-                          },
-                          "&.Mui-focused": {
-                            boxShadow: "0 4px 12px rgba(139, 92, 246, 0.3)",
-                            "& .MuiOutlinedInput-notchedOutline": {
-                              borderColor: "#8b5cf6",
-                            },
-                          },
-                        },
-                        "& .MuiInputLabel-root": {
-                          color: "#555555",
-                          "&.Mui-focused": {
-                            color: "#8b5cf6",
-                          },
-                        },
-                      }}
-                    />
-                  </Grid>
-
-                  <Grid size={{ xs: 12, sm: 6 }}>
-                    <TextField
-                      fullWidth
-                      label="Confirm Password"
-                      name="confirm_password"
-                      type={showConfirmPassword ? "text" : "password"}
-                      value={formData.confirm_password}
-                      onChange={handleChange}
-                      error={!!errors.confirm_password}
-                      helperText={errors.confirm_password}
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <Lock sx={{ color: "#8b5cf6" }} />
-                          </InputAdornment>
-                        ),
-                        endAdornment: (
-                          <InputAdornment position="end">
-                            <IconButton
-                              onClick={() =>
-                                setShowConfirmPassword(!showConfirmPassword)
-                              }
-                              edge="end"
-                            >
-                              {showConfirmPassword ? (
-                                <VisibilityOff sx={{ color: "#8b5cf6" }} />
-                              ) : (
-                                <Visibility sx={{ color: "#8b5cf6" }} />
-                              )}
-                            </IconButton>
-                          </InputAdornment>
-                        ),
-                        sx: { borderRadius: "16px" },
-                      }}
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          transition: "all 0.2s",
-                          "&:hover": {
-                            boxShadow: "0 2px 8px rgba(139, 92, 246, 0.2)",
-                          },
-                          "&.Mui-focused": {
-                            boxShadow: "0 4px 12px rgba(139, 92, 246, 0.3)",
-                            "& .MuiOutlinedInput-notchedOutline": {
-                              borderColor: "#8b5cf6",
-                            },
-                          },
-                        },
-                        "& .MuiInputLabel-root": {
-                          color: "#555555",
-                          "&.Mui-focused": {
-                            color: "#8b5cf6",
-                          },
-                        },
-                      }}
-                    />
-                  </Grid>
                 </Grid>
 
-                <Box sx={{ mt: 4, textAlign: "center" }}>
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    size="large"
-                    disabled={loading}
+                <Grid size={{ xs: 12 }}>
+                  <TextField
                     fullWidth
+                    label="Verification code"
+                    name="verification_code"
+                    value={formData.verification_code || ""}
+                    onChange={handleChange}
+                    error={!!errors.verification_code}
+                    helperText={errors.verification_code}
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            sx={{
+                              color: "#4caf50",
+                              borderColor: "#4caf50",
+                              "&:hover": {
+                                borderColor: "#45a049",
+                                bgcolor: "rgba(76, 175, 80, 0.1)",
+                              },
+                            }}
+                          >
+                            Send Code
+                          </Button>
+                        </InputAdornment>
+                      ),
+                    }}
+                    variant="outlined"
                     sx={{
-                      minWidth: 200,
-                      py: 1.5,
-                      borderRadius: "50px",
-                      boxShadow: "0 5px 15px rgba(139, 92, 246, 0.5)",
-                      fontWeight: 600,
-                      fontSize: "1rem",
-                      background: "linear-gradient(to right, #8b5cf6, #d946ef)",
-                      color: "#ffffff",
-                      animation: "pulse 2s infinite",
-                      "&:not(:disabled):hover": {
-                        transform: "translateY(-2px)",
-                        boxShadow: "0 8px 25px rgba(139, 92, 246, 0.7)",
-                        background:
-                          "linear-gradient(to right, #7c3aed, #c026d3)",
+                      "& .MuiOutlinedInput-root": {
+                        bgcolor: "#333",
+                        "& fieldset": {
+                          borderColor: "#555",
+                        },
+                        "&:hover fieldset": {
+                          borderColor: "#777",
+                        },
+                        "&.Mui-focused fieldset": {
+                          borderColor: "#4caf50",
+                        },
                       },
-                      "&:active": {
-                        transform: "translateY(1px)",
-                        boxShadow: "0 2px 8px rgba(139, 92, 246, 0.3)",
+                      "& .MuiInputLabel-root": {
+                        color: "#888",
+                        "&.Mui-focused": {
+                          color: "#4caf50",
+                        },
                       },
-                      "&:disabled": {
-                        opacity: 0.7,
-                        background:
-                          "linear-gradient(to right, #a78bfa, #e879f9)",
-                      },
-                      position: "relative",
-                      overflow: "hidden",
-                      "&::before": {
-                        content: '""',
-                        position: "absolute",
-                        top: 0,
-                        left: 0,
-                        width: "100%",
-                        height: "100%",
-                        background:
-                          "linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent)",
-                        transform: "translateX(-100%)",
-                        transition: "transform 0.8s ease",
-                      },
-                      "&:hover::before": {
-                        transform: "translateX(100%)",
+                      "& .MuiInputBase-input": {
+                        color: "white",
                       },
                     }}
-                  >
-                    {loading ? (
-                      <CircularProgress size={24} color="inherit" />
-                    ) : (
-                      "Create Account"
-                    )}
-                  </Button>
+                  />
+                </Grid>
 
-                  <Box sx={{ mt: 3 }}>
-                    <Typography variant="body2" sx={{ color: "#555555" }}>
-                      Already have an account?{" "}
-                      <Link
-                        to="/login"
-                        style={{
-                          color: "#d946ef",
-                          textDecoration: "none",
-                          fontWeight: 600,
-                        }}
-                        sx={{
-                          "&:hover": {
-                            color: "#8b5cf6",
-                            textDecoration: "underline",
-                          },
-                        }}
-                      >
-                        Sign in
-                      </Link>
-                    </Typography>
-                  </Box>
+                <Grid size={{ xs: 12 }}>
+                  <TextField
+                    fullWidth
+                    label="Password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    value={formData.password}
+                    onChange={handleChange}
+                    error={!!errors.password}
+                    helperText={errors.password}
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            onClick={() => setShowPassword(!showPassword)}
+                            edge="end"
+                            sx={{ color: "#888" }}
+                          >
+                            {showPassword ? <VisibilityOff /> : <Visibility />}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }}
+                    variant="outlined"
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        bgcolor: "#333",
+                        "& fieldset": {
+                          borderColor: "#555",
+                        },
+                        "&:hover fieldset": {
+                          borderColor: "#777",
+                        },
+                        "&.Mui-focused fieldset": {
+                          borderColor: "#4caf50",
+                        },
+                      },
+                      "& .MuiInputLabel-root": {
+                        color: "#888",
+                        "&.Mui-focused": {
+                          color: "#4caf50",
+                        },
+                      },
+                      "& .MuiInputBase-input": {
+                        color: "white",
+                      },
+                    }}
+                  />
+                </Grid>
+              </Grid>
+
+              <Box sx={{ mt: 4, textAlign: "center" }}>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  size="large"
+                  disabled={loading}
+                  fullWidth
+                  sx={{
+                    minWidth: 200,
+                    py: 1.5,
+                    bgcolor: "#4caf50",
+                    color: "white",
+                    fontWeight: 600,
+                    "&:hover": {
+                      bgcolor: "#45a049",
+                    },
+                    "&:disabled": {
+                      bgcolor: "#666",
+                      color: "#999",
+                    },
+                  }}
+                >
+                  {loading ? (
+                    <CircularProgress size={24} color="inherit" />
+                  ) : (
+                    "Sign Up"
+                  )}
+                </Button>
+
+                <Box sx={{ mt: 3 }}>
+                  <Typography variant="body2" sx={{ color: "#888" }}>
+                    Already have an account?{" "}
+                    <Link
+                      to="/login"
+                      style={{
+                        color: "#4caf50",
+                        textDecoration: "none",
+                        fontWeight: 600,
+                      }}
+                    >
+                      Log in
+                    </Link>
+                  </Typography>
+                </Box>
+
+                <Box sx={{ mt: 3, textAlign: "center" }}>
+                  <Typography variant="caption" sx={{ color: "#666" }}>
+                    by continuing, you are agreeing to Trae's{" "}
+                    <Link href="#" style={{ color: "#4caf50" }}>
+                      Terms of Service
+                    </Link>{" "}
+                    and{" "}
+                    <Link href="#" style={{ color: "#4caf50" }}>
+                      Privacy Policy
+                    </Link>
+                  </Typography>
                 </Box>
               </Box>
             </Box>
-          </Paper>
-        </Slide>
+          </Box>
+        </Paper>
       </Container>
-
-      {/* Global styles for animations */}
-      <style jsx global>{`
-        @keyframes gradientFlow {
-          0% {
-            background-position: 0% 50%;
-          }
-          50% {
-            background-position: 100% 50%;
-          }
-          100% {
-            background-position: 0% 50%;
-          }
-        }
-
-        @keyframes orbitTopLeft {
-          0% {
-            transform: translate(0, 0);
-          }
-          25% {
-            transform: translate(10vw, -5vh);
-          }
-          50% {
-            transform: translate(15vw, 5vh);
-          }
-          75% {
-            transform: translate(5vw, 10vh);
-          }
-          100% {
-            transform: translate(0, 0);
-          }
-        }
-
-        @keyframes orbitBottomRight {
-          0% {
-            transform: translate(0, 0);
-          }
-          25% {
-            transform: translate(-8vw, 8vh);
-          }
-          50% {
-            transform: translate(-12vw, -5vh);
-          }
-          75% {
-            transform: translate(-5vw, -10vh);
-          }
-          100% {
-            transform: translate(0, 0);
-          }
-        }
-
-        @keyframes orbitMiddleLeft {
-          0% {
-            transform: translate(0, 0);
-          }
-          25% {
-            transform: translate(5vw, 12vh);
-          }
-          50% {
-            transform: translate(10vw, -8vh);
-          }
-          75% {
-            transform: translate(3vw, -12vh);
-          }
-          100% {
-            transform: translate(0, 0);
-          }
-        }
-
-        @keyframes glow {
-          0% {
-            opacity: 0.8;
-            filter: blur(30px);
-          }
-          50% {
-            opacity: 1;
-            filter: blur(40px);
-          }
-          100% {
-            opacity: 0.8;
-            filter: blur(30px);
-          }
-        }
-
-        @keyframes pulse {
-          0% {
-            transform: scale(0.95);
-            box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.4);
-          }
-          70% {
-            transform: scale(1);
-            box-shadow: 0 0 0 10px rgba(139, 92, 246, 0);
-          }
-          100% {
-            transform: scale(0.95);
-            box-shadow: 0 0 0 0 rgba(139, 92, 246, 0);
-          }
-        }
-
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
-        }
-      `}</style>
     </Box>
   );
 }

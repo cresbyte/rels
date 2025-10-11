@@ -12,7 +12,7 @@ import { Routes, Route, useLocation, useParams } from "react-router-dom";
 
 // Import custom components
 import api from "../../api/axios";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../auth/auth/AuthContext";
 import AnalyticsDashboard from "../analytics/AnalyticsDashboard";
 import DocumentDetailRoute from "../documents/DocumentDetailRoute";
 import DocumentsTable from "../documents/DocumentsTable";
@@ -49,6 +49,8 @@ function DashboardLayout() {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  console.log(currentUser)
+
   // Determine active screen based on URL
   const getActiveScreen = () => {
     const path = location.pathname;
@@ -69,7 +71,7 @@ function DashboardLayout() {
       if (currentUser) {
         try {
           // Fetch fresh user data to ensure we have the latest
-          const response = await api.get("users/me/");
+          const response = await api.get("me/");
           setUserData(response.data);
           setLoading(false);
         } catch (error) {
@@ -195,7 +197,6 @@ function DashboardLayout() {
     >
       <CssBaseline />
       <TopBar
-        user={userData || currentUser}
         handleLogout={handleLogout}
         onLogout={handleLogout}
       />

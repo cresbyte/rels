@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { ThemeProvider } from "./context/ThemeContext";
+import { ApiProvider } from "./api/axios";
 
 // Import Plus Jakarta Sans font weights
 import '@fontsource/plus-jakarta-sans/300.css'; // Light
@@ -15,7 +16,10 @@ import App from "./App";
 createRoot(document.getElementById("root")).render(
   <StrictMode>
       <ThemeProvider>
+        <ApiProvider
+        >
         <App />
+        </ApiProvider>
       </ThemeProvider>
   </StrictMode>
 );

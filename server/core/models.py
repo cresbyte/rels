@@ -34,6 +34,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
     first_name = models.CharField(max_length=150, blank=True, null=True)
     last_name = models.CharField(max_length=150, blank=True, null=True)
+    profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True, null=True)
     password_reset_code = models.CharField(max_length=6, blank=True, null=True)
     password_reset_code_created_at = models.DateTimeField(null=True, blank=True)
     

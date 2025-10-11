@@ -45,6 +45,7 @@ export const AuthProvider = ({ children }) => {
           // Token expired and no refresh token
           logout();
         } else {
+          console.log("tokenDta:", tokenData)
           // Valid token, set user with all available fields
           setUser({
             id: tokenData.user_id,
@@ -406,6 +407,9 @@ export const AuthProvider = ({ children }) => {
       throw err;
     }
   };
+
+
+  console.log("user:",user)
 
   const value = {
     user,

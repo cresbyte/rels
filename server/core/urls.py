@@ -5,8 +5,10 @@ from .views.user_views import (
     LoginView,
     UserDetailView,
     GoogleLoginView,
-    RequestPasswordResetView,
+    ForgotPasswordView,
+    VerifyResetCodeView,
     ResetPasswordView,
+    ChangePasswordView,
 )
 
 
@@ -18,14 +20,24 @@ urlpatterns = [
     # verification endpoints removed to align with simplified model
     path("me/", UserDetailView.as_view(), name="user_detail"),
     path(
-        "request-password-reset/",
-        RequestPasswordResetView.as_view(),
-        name="request_password_reset",
+        "forgot-password/",
+        ForgotPasswordView.as_view(),
+        name="forgot_password",
+    ),
+    path(
+        "verify-reset-code/",
+        VerifyResetCodeView.as_view(),
+        name="verify_reset_code",
     ),
     path(
         "reset-password/",
         ResetPasswordView.as_view(),
         name="reset_password",
+    ),
+    path(
+        "change-password/",
+        ChangePasswordView.as_view(),
+        name="change_password",
     ),
    
 ]

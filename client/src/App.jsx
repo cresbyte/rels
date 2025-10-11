@@ -6,14 +6,15 @@ import {
   Routes,
   useLocation,
 } from "react-router-dom";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 import EmailVerification from "./auth/EmailVerification";
-import ForgotPassword from "./auth/ForgotPassword";
 import Login from "./auth/Login";
 import PrivateRoute from "./auth/PrivateRoute";
+import PublicRoute from "./auth/PublicRoute";
 import Register from "./auth/Register";
 import RegistrationSuccess from "./auth/RegistrationSuccess";
 import ResetPassword from "./auth/ResetPassword";
-import { AuthProvider } from "./context/AuthContext";
+import { AuthProvider } from "./auth/auth/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import DashboardLayout from "./dashboard/layout/DashboardLayout";
 import AboutUs from "./home/AboutUs";
@@ -39,64 +40,121 @@ function App() {
 
 
   return (
-    <Router>
-      <ThemeProvider>
-        <AuthProvider>
-          <Box sx={{ width: "99.5vw" }}>
-            <CssBaseline />
-            <ScrollToTop />
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route
-                path="/register-success"
-                element={<RegistrationSuccess />}
-              />
-              <Route path="/verify-email" element={<EmailVerification />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route
-                path="/dashboard"
-                element={
-                  <PrivateRoute>
-                    <DashboardLayout />
-                  </PrivateRoute>
-                }
-              />
-              <Route
-                path="/dashboard/documents"
-                element={
-                  <PrivateRoute>
-                    <DashboardLayout />
-                  </PrivateRoute>
-                }
-              /> <Route
-                path="/dashboard/upload"
-                element={
-                  <PrivateRoute>
-                    <DashboardLayout />
-                  </PrivateRoute>
-                }
-              />
-              <Route
-                path="/dashboard/documents/:id"
-                element={
-                  <PrivateRoute>
-                    <DashboardLayout />
-                  </PrivateRoute>
-                }
-              />
-              <Route path="/about" element={<AboutUs />} />
-              <Route path="/contact" element={<ContactUs />} />
-              <Route path="/faq" element={<FAQs />} />
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <Router>
+        <ThemeProvider>
+          <AuthProvider>
+            <Box sx={{ width: "99.5vw" }}>
+              <CssBaseline />
+              <ScrollToTop />
+              <Routes>
+                <Route 
+                  path="/login" 
+                  element={
+                    <PublicRoute>
+                      <Login />
+                    </PublicRoute>
+                  } 
+                />
+                <Route 
+                  path="/register" 
+                  element={
+                    <PublicRoute>
+                      <Register />
+                    </PublicRoute>
+                  } 
+                />
+                <Route
+                  path="/register-success"
+                  element={
+                    <PublicRoute>
+                      <RegistrationSuccess />
+                    </PublicRoute>
+                  }
+                />
+                <Route 
+                  path="/verify-email" 
+                  element={
+                    <PublicRoute>
+                      <EmailVerification />
+                    </PublicRoute>
+                  } 
+                />
+                <Route 
+                  path="/forgot-password" 
+                  element={
+                    <PublicRoute>
+                      <ResetPassword />
+                    </PublicRoute>
+                  } 
+                />
+                <Route 
+                  path="/reset-password" 
+                  element={
+                    <PublicRoute>
+                      <ResetPassword />
+                    </PublicRoute>
+                  } 
+                />
+                <Route
+                  path="/dashboard"
+                  element={
+                    <PrivateRoute>
+                      <DashboardLayout />
+                    </PrivateRoute>
+                  }
+                />
+                <Route
+                  path="/dashboard/documents"
+                  element={
+                    <PrivateRoute>
+                      <DashboardLayout />
+                    </PrivateRoute>
+                  }
+                /> <Route
+                  path="/dashboard/upload"
+                  element={
+                    <PrivateRoute>
+                      <DashboardLayout />
+                    </PrivateRoute>
+                  }
+                />
+                <Route
+                  path="/dashboard/documents/:id"
+                  element={
+                    <PrivateRoute>
+                      <DashboardLayout />
+                    </PrivateRoute>
+                  }
+                />
+                <Route
+                  path="/dashboard/profile"
+                  element={
+                    <PrivateRoute>
+                      <DashboardLayout />
+                    </PrivateRoute>
+                  }
+                />
+                <Route
+                  path="/dashboard/settings"
+                  element={
+                    <PrivateRoute>
+                      <DashboardLayout />
+                    </PrivateRoute>
+                  }
+                />
+                <Route path="/about" element={<AboutUs />} />
+                <Route path="/contact" element={<ContactUs />} />
+                <Route path="/faq" element={<FAQs />} />
 
-              <Route path="/" element={<OpaigeLandingPage />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Box>
-        </AuthProvider>
-      </ThemeProvider>
-    </Router>
+                <Route path="/" element={<OpaigeLandingPage />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Box>
+          </AuthProvider>
+        </ThemeProvider>
+      </Router>
+    </GoogleOAuthProvider>
   );
 }
 

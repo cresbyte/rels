@@ -1,457 +1,594 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from "react";
 import {
   Box,
   Button,
-  Container,
   TextField,
   Typography,
+  Container,
   Paper,
   Alert,
   CircularProgress,
-  Slide,
   InputAdornment,
   IconButton,
-} from '@mui/material';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Lock, Visibility, VisibilityOff, ArrowBack } from '@mui/icons-material';
-import axios from '../api/axios';
+} from "@mui/material";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  Visibility,
+  VisibilityOff,
+  Email,
+  Lock,
+  ArrowBack,
+} from "@mui/icons-material";
+import axios from "axios";
 
-const ResetPassword = () => {
-  const [searchParams] = useSearchParams();
-  const [formData, setFormData] = useState({
-    password: '',
-    confirmPassword: '',
-  });
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+
+function ResetPassword() {
+  const navigate = useNavigate();
+  const [step, setStep] = useState(1); // 1: email, 2: verification, 3: new password
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [formData, setFormData] = useState({
+    email: "",
+    verificationCode: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const navigate = useNavigate();
-
-  const token = searchParams.get('token');
-
-  useEffect(() => {
-    if (!token) {
-      setError('Invalid reset link. Please request a new password reset.');
-    }
-  }, [token]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
-    if (error) setError('');
+    setError("");
   };
 
-  const handleSubmit = async (e) => {
+  const handleSendCode = async (e) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
-
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters long');
-      return;
-    }
-
     setLoading(true);
+    setError("");
 
     try {
-      await axios.post('/password-reset/confirm/', {
-        token,
-        password: formData.password,
-        confirm_password: formData.confirmPassword,
+      const response = await axios.post(`${API_URL}/accounts/forgot-password/`, {
+        email: formData.email,
       });
-      setSuccess('Password has been reset successfully.');
-      setTimeout(() => {
-        navigate('/login');
-      }, 3000);
+
+      setSuccess("Verification code sent to your email!");
+      setStep(2);
     } catch (err) {
-      setError(err.response?.data?.detail || 'An error occurred. Please try again.');
+      setError(err.response?.data?.error || "Failed to send verification code");
     } finally {
       setLoading(false);
     }
   };
 
-  if (!token) {
-    return (
-      <Box
-        sx={{
-          minHeight: "100vh",
-          display: "flex",
-          flexDirection: "column",
-          bgcolor: "#f9f5f6",
-          position: "relative",
-          overflow: "hidden",
-        }}
-      >
-        <Container maxWidth="sm" sx={{ mt: 8 }}>
-          <Paper
-            elevation={8}
-            sx={{
-              p: 4,
-              borderRadius: 4,
-              backgroundColor: "rgba(255, 255, 255, 0.9)",
-              boxShadow: "0 8px 32px rgba(0, 0, 0, 0.1)",
-            }}
-          >
-            <Alert severity="error" sx={{ mb: 3 }}>
-              Invalid reset link. Please request a new password reset.
-            </Alert>
-            <Button
-              fullWidth
-              variant="contained"
-              onClick={() => navigate('/forgot-password')}
-              sx={{
-                py: 1.5,
-                borderRadius: 8,
-                background: "linear-gradient(to right, #3b82f6, #22d3ee)",
-              }}
-            >
-              Request New Reset Link
-            </Button>
-          </Paper>
-        </Container>
-      </Box>
-    );
-  }
+  const handleVerifyCode = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await axios.post(`${API_URL}/accounts/verify-reset-code/`, {
+        email: formData.email,
+        verification_code: formData.verificationCode,
+      });
+
+      setSuccess("Code verified successfully!");
+      setStep(3);
+    } catch (err) {
+      setError(err.response?.data?.error || "Invalid verification code");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    if (formData.newPassword !== formData.confirmPassword) {
+      setError("Passwords do not match");
+      setLoading(false);
+      return;
+    }
+
+    if (formData.newPassword.length < 8) {
+      setError("Password must be at least 8 characters long");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const response = await axios.post(`${API_URL}/accounts/reset-password/`, {
+        email: formData.email,
+        verification_code: formData.verificationCode,
+        new_password: formData.newPassword,
+      });
+
+      setSuccess("Password reset successfully! Redirecting to login...");
+      setTimeout(() => {
+        navigate("/login");
+      }, 2000);
+    } catch (err) {
+      setError(err.response?.data?.error || "Failed to reset password");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBack = () => {
+    if (step > 1) {
+      setStep(step - 1);
+      setError("");
+      setSuccess("");
+    } else {
+      navigate("/login");
+    }
+  };
+
+  const isFormValid = () => {
+    switch (step) {
+      case 1:
+        return formData.email && formData.email.includes("@");
+      case 2:
+        return formData.verificationCode && formData.verificationCode.length >= 4;
+      case 3:
+        return (
+          formData.newPassword &&
+          formData.confirmPassword &&
+          formData.newPassword === formData.confirmPassword &&
+          formData.newPassword.length >= 8
+        );
+      default:
+        return false;
+    }
+  };
+
+  const getStepTitle = () => {
+    switch (step) {
+      case 1:
+        return "Reset Password";
+      case 2:
+        return "Verify Account";
+      case 3:
+        return "Set New Password";
+      default:
+        return "Reset Password";
+    }
+  };
+
+  const getStepDescription = () => {
+    switch (step) {
+      case 1:
+        return "Enter your email address and we'll send you a verification code";
+      case 2:
+        return "Enter the verification code sent to your email";
+      case 3:
+        return "Create a new password for your account";
+      default:
+        return "";
+    }
+  };
 
   return (
     <Box
       sx={{
         minHeight: "100vh",
+        background: "linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)",
         display: "flex",
-        flexDirection: "column",
-        bgcolor: "#f9f5f6",
-        position: "relative",
-        overflow: "hidden",
+        alignItems: "center",
+        justifyContent: "center",
+        py: 4,
       }}
     >
-      {/* Header with Logo */}
-      <Box 
-        sx={{ 
-          display: "flex", 
-          justifyContent: "space-between", 
-          alignItems: "center",
-          p: 3,
-          position: "relative",
-          zIndex: 2,
-        }}
-      >
-        <Box sx={{ display: "flex", alignItems: "center" }}>
-          <Box
-            sx={{
-              position: "relative",
-              width: 45,
-              height: 45,
-              mr: 1,
-            }}
-          >
-            <Box
-              sx={{
-                position: "absolute",
-                inset: 0,
-                background: "linear-gradient(to top right, #3b82f6, #22d3ee)",
-                borderRadius: 1,
-                transform: "rotate(3deg)",
-                opacity: 0.8,
-              }}
-            />
-            <Box
-              sx={{
-                position: "absolute",
-                inset: 0,
-                backgroundColor: "white",
-                borderRadius: 1,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Typography
-                variant="h5"
-                component="span"
-                fontWeight="bold"
-                sx={{
-                  background: "linear-gradient(to right, #3b82f6, #22d3ee)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                }}
-              >
-                O
-              </Typography>
-            </Box>
-          </Box>
-          <Typography variant="h5" fontWeight="bold" component="div">
-            <Box component="span" sx={{ color: "#3b82f6" }}>
-              Opaige
-            </Box>
-          </Typography>
-        </Box>
-        
-        <Button 
-          variant="outlined"
-          color="primary" 
-          startIcon={<ArrowBack />}
-          onClick={() => navigate('/login')}
-          sx={{ 
-            borderRadius: "20px",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-            px: 2, 
-            py: 0.7,
-            borderColor: 'rgba(59, 130, 246, 0.5)',
-            '&:hover': {
-              borderColor: '#3b82f6',
-              boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-            }
+      <Container maxWidth="sm">
+        <Paper
+          elevation={24}
+          sx={{
+            p: 4,
+            background: "rgba(255, 255, 255, 0.05)",
+            backdropFilter: "blur(10px)",
+            border: "1px solid rgba(255, 255, 255, 0.1)",
+            maxWidth:"30rem"
+
           }}
         >
-          Back to Login
-        </Button>
-      </Box>
-
-      <Container 
-        maxWidth="sm" 
-        sx={{ 
-          width: "100%", 
-          flexGrow: 1, 
-          display: "flex", 
-          alignItems: "center", 
-          justifyContent: "center", 
-          pb: 8, 
-          position: "relative", 
-          zIndex: 1 
-        }}
-      >
-        <Slide direction="up" in={true} mountOnEnter unmountOnExit>
-          <Paper
-            elevation={8}
-            sx={{
-              p: { xs: 3, sm: 5 },
-              borderRadius: 4,
-              transition: "all 0.3s ease-in-out",
-              backdropFilter: "blur(10px)",
-              backgroundColor: "rgba(255, 255, 255, 0.9)",
-              boxShadow: "0 8px 32px rgba(0, 0, 0, 0.1)",
-              border: "1px solid rgba(255, 255, 255, 0.2)",
-              width: "100%",
-              "&:hover": {
-                boxShadow: "0 12px 48px rgba(0,0,0,0.12)",
-                transform: "translateY(-5px)",
-              },
-              position: "relative",
-              overflow: "hidden",
-            }}
-          >
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-              }}
-            >
+          {/* Header */}
+          <Box sx={{ textAlign: "center", mb: 4 }}>
+            <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+              <IconButton
+                onClick={handleBack}
+                sx={{
+                  color: "#4caf50",
+                  mr: 1,
+                }}
+              >
+                <ArrowBack />
+              </IconButton>
               <Typography
-                component="h1"
                 variant="h4"
                 sx={{
-                  mb: 1.5,
+                  color: "white",
                   fontWeight: 700,
-                  background: "linear-gradient(45deg, #3b82f6, #22d3ee)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  letterSpacing: "-0.5px",
+                  flex: 1,
                 }}
               >
-                Reset Password
+                {getStepTitle()}
               </Typography>
+            </Box>
+            <Typography
+              variant="body1"
+              sx={{
+                color: "#888",
+                mb: 3,
+              }}
+            >
+              {getStepDescription()}
+            </Typography>
+          </Box>
 
-              <Typography
-                variant="body1"
-                color="text.secondary"
+          {/* Error Alert */}
+          {error && (
+            <Alert
+              severity="error"
+              sx={{
+                mb: 3,
+                bgcolor: "rgba(244, 67, 54, 0.1)",
+                border: "1px solid rgba(244, 67, 54, 0.3)",
+                color: "#f44336",
+              }}
+            >
+              {error}
+            </Alert>
+          )}
+
+          {/* Success Alert */}
+          {success && (
+            <Alert
+              severity="success"
+              sx={{
+                mb: 3,
+                bgcolor: "rgba(76, 175, 80, 0.1)",
+                border: "1px solid rgba(76, 175, 80, 0.3)",
+                color: "#4caf50",
+              }}
+            >
+              {success}
+            </Alert>
+          )}
+
+          {/* Step 1: Email */}
+          {step === 1 && (
+            <Box
+              component="form"
+              onSubmit={handleSendCode}
+              sx={{
+                width: "100%",
+                "& .MuiTextField-root": { mb: 3 },
+              }}
+            >
+              <TextField
+                required
+                fullWidth
+                label="Email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+                variant="outlined"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Email sx={{ color: "#888" }} />
+                    </InputAdornment>
+                  ),
+                }}
                 sx={{
-                  mb: 4,
-                  textAlign: "center",
-                  maxWidth: "80%",
+                  "& .MuiOutlinedInput-root": {
+                    bgcolor: "#333",
+                    "& fieldset": {
+                      borderColor: "#555",
+                    },
+                    "&:hover fieldset": {
+                      borderColor: "#777",
+                    },
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#4caf50",
+                    },
+                  },
+                  "& .MuiInputLabel-root": {
+                    color: "#888",
+                    "&.Mui-focused": {
+                      color: "#4caf50",
+                    },
+                  },
+                  "& .MuiInputBase-input": {
+                    color: "white",
+                  },
+                }}
+              />
+
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                disabled={loading || !isFormValid()}
+                sx={{
+                  mt: 2,
+                  mb: 3,
+                  py: 1.5,
+                  bgcolor: "#4caf50",
+                  color: "white",
+                  fontWeight: 600,
+                  "&:hover": {
+                    bgcolor: "#45a049",
+                  },
+                  "&:disabled": {
+                    bgcolor: "#666",
+                    color: "#999",
+                  },
                 }}
               >
-                Please enter your new password below.
-              </Typography>
+                {loading ? <CircularProgress size={24} color="inherit" /> : "Send Code"}
+              </Button>
+            </Box>
+          )}
 
-              {error && (
-                <Alert
-                  severity="error"
-                  variant="filled"
-                  sx={{
-                    width: "100%",
-                    mb: 3,
-                    borderRadius: 2,
-                    animation: "pulse 1.5s ease-in-out",
-                  }}
-                >
-                  {error}
-                </Alert>
-              )}
-
-              {success && (
-                <Alert
-                  severity="success"
-                  variant="filled"
-                  sx={{
-                    width: "100%",
-                    mb: 3,
-                    borderRadius: 2,
-                    animation: "pulse 1.5s ease-in-out",
-                  }}
-                >
-                  {success}
-                </Alert>
-              )}
-
-              <Box component="form" onSubmit={handleSubmit} sx={{ width: "100%" }}>
-                <TextField
-                  required
-                  fullWidth
-                  name="password"
-                  label="New Password"
-                  type={showPassword ? "text" : "password"}
-                  value={formData.password}
-                  onChange={handleChange}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Lock color="action" />
-                      </InputAdornment>
-                    ),
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton
-                          onClick={() => setShowPassword(!showPassword)}
-                          edge="end"
-                        >
-                          {showPassword ? <VisibilityOff /> : <Visibility />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                  sx={{
-                    mb: 3,
-                    "& .MuiOutlinedInput-root": {
-                      borderRadius: 2,
-                      transition: "all 0.2s",
-                      "&:hover": {
-                        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.08)",
-                      },
-                      "&.Mui-focused": {
-                        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
-                      },
+          {/* Step 2: Verification Code */}
+          {step === 2 && (
+            <Box
+              component="form"
+              onSubmit={handleVerifyCode}
+              sx={{
+                width: "100%",
+                "& .MuiTextField-root": { mb: 3 },
+              }}
+            >
+              <TextField
+                required
+                fullWidth
+                label="Verification Code"
+                name="verificationCode"
+                value={formData.verificationCode}
+                onChange={handleChange}
+                variant="outlined"
+                placeholder="Enter the 6-digit code"
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    bgcolor: "#333",
+                    "& fieldset": {
+                      borderColor: "#555",
                     },
-                  }}
-                />
-
-                <TextField
-                  required
-                  fullWidth
-                  name="confirmPassword"
-                  label="Confirm New Password"
-                  type={showConfirmPassword ? "text" : "password"}
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Lock color="action" />
-                      </InputAdornment>
-                    ),
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton
-                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          edge="end"
-                        >
-                          {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                  sx={{
-                    mb: 3,
-                    "& .MuiOutlinedInput-root": {
-                      borderRadius: 2,
-                      transition: "all 0.2s",
-                      "&:hover": {
-                        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.08)",
-                      },
-                      "&.Mui-focused": {
-                        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
-                      },
+                    "&:hover fieldset": {
+                      borderColor: "#777",
                     },
-                  }}
-                />
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#4caf50",
+                    },
+                  },
+                  "& .MuiInputLabel-root": {
+                    color: "#888",
+                    "&.Mui-focused": {
+                      color: "#4caf50",
+                    },
+                  },
+                  "& .MuiInputBase-input": {
+                    color: "white",
+                  },
+                }}
+              />
 
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                disabled={loading || !isFormValid()}
+                sx={{
+                  mt: 2,
+                  mb: 3,
+                  py: 1.5,
+                  bgcolor: "#4caf50",
+                  color: "white",
+                  fontWeight: 600,
+                  "&:hover": {
+                    bgcolor: "#45a049",
+                  },
+                  "&:disabled": {
+                    bgcolor: "#666",
+                    color: "#999",
+                  },
+                }}
+              >
+                {loading ? <CircularProgress size={24} color="inherit" /> : "Verify Code"}
+              </Button>
+
+              <Box sx={{ textAlign: "center" }}>
+                <Typography variant="body2" sx={{ color: "#888", mb: 1 }}>
+                  Didn't receive the code?
+                </Typography>
                 <Button
-                  type="submit"
-                  fullWidth
-                  variant="contained"
+                  variant="text"
+                  onClick={handleSendCode}
                   disabled={loading}
                   sx={{
-                    mt: 1,
-                    mb: 4,
-                    py: 1.5,
-                    borderRadius: 8,
-                    boxShadow: "0 4px 14px rgba(59, 130, 246, 0.25)",
-                    transition: "all 0.3s ease",
-                    fontWeight: 600,
-                    fontSize: "1rem",
-                    background: "linear-gradient(to right, #3b82f6, #22d3ee)",
-                    "&:not(:disabled):hover": {
-                      transform: "translateY(-2px)",
-                      boxShadow: "0 8px 20px rgba(59, 130, 246, 0.3)",
-                    },
-                    "&:active": {
-                      transform: "translateY(1px)",
-                      boxShadow: "0 2px 8px rgba(59, 130, 246, 0.2)",
-                    },
-                    "&:disabled": {
-                      opacity: 0.7,
-                      background: "linear-gradient(to right, #9cb3f0, #92dbe6)",
+                    color: "#4caf50",
+                    textTransform: "none",
+                    "&:hover": {
+                      bgcolor: "rgba(76, 175, 80, 0.1)",
                     },
                   }}
                 >
-                  {loading ? (
-                    <CircularProgress size={24} color="inherit" />
-                  ) : (
-                    "Reset Password"
-                  )}
+                  Resend Code
                 </Button>
               </Box>
             </Box>
-          </Paper>
-        </Slide>
+          )}
 
-        {/* Global styles for animations */}
-        <style jsx global>{`
-          @keyframes pulse {
-            0% {
-              opacity: 0.8;
-            }
-            50% {
-              opacity: 1;
-            }
-            100% {
-              opacity: 0.8;
-            }
-          }
-        `}</style>
+          {/* Step 3: New Password */}
+          {step === 3 && (
+            <Box
+              component="form"
+              onSubmit={handleResetPassword}
+              sx={{
+                width: "100%",
+                "& .MuiTextField-root": { mb: 3 },
+              }}
+            >
+              <TextField
+                required
+                fullWidth
+                label="New Password"
+                name="newPassword"
+                type={showPassword ? "text" : "password"}
+                value={formData.newPassword}
+                onChange={handleChange}
+                variant="outlined"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Lock sx={{ color: "#888" }} />
+                    </InputAdornment>
+                  ),
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowPassword(!showPassword)}
+                        edge="end"
+                        sx={{ color: "#888" }}
+                      >
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    bgcolor: "#333",
+                    "& fieldset": {
+                      borderColor: "#555",
+                    },
+                    "&:hover fieldset": {
+                      borderColor: "#777",
+                    },
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#4caf50",
+                    },
+                  },
+                  "& .MuiInputLabel-root": {
+                    color: "#888",
+                    "&.Mui-focused": {
+                      color: "#4caf50",
+                    },
+                  },
+                  "& .MuiInputBase-input": {
+                    color: "white",
+                  },
+                }}
+              />
+
+              <TextField
+                required
+                fullWidth
+                label="Confirm New Password"
+                name="confirmPassword"
+                type={showConfirmPassword ? "text" : "password"}
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                variant="outlined"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Lock sx={{ color: "#888" }} />
+                    </InputAdornment>
+                  ),
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        edge="end"
+                        sx={{ color: "#888" }}
+                      >
+                        {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    bgcolor: "#333",
+                    "& fieldset": {
+                      borderColor: "#555",
+                    },
+                    "&:hover fieldset": {
+                      borderColor: "#777",
+                    },
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#4caf50",
+                    },
+                  },
+                  "& .MuiInputLabel-root": {
+                    color: "#888",
+                    "&.Mui-focused": {
+                      color: "#4caf50",
+                    },
+                  },
+                  "& .MuiInputBase-input": {
+                    color: "white",
+                  },
+                }}
+              />
+
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                disabled={loading || !isFormValid()}
+                sx={{
+                  mt: 2,
+                  mb: 3,
+                  py: 1.5,
+                  bgcolor: "#4caf50",
+                  color: "white",
+                  fontWeight: 600,
+                  "&:hover": {
+                    bgcolor: "#45a049",
+                  },
+                  "&:disabled": {
+                    bgcolor: "#666",
+                    color: "#999",
+                  },
+                }}
+              >
+                {loading ? <CircularProgress size={24} color="inherit" /> : "Reset Password"}
+              </Button>
+            </Box>
+          )}
+
+          {/* Footer */}
+          <Box sx={{ textAlign: "center", mt: 3 }}>
+            <Typography variant="body2" sx={{ color: "#888" }}>
+              Remember your password?{" "}
+              <Link
+                to="/login"
+                style={{
+                  color: "#4caf50",
+                  textDecoration: "none",
+                  fontWeight: 600,
+                }}
+              >
+                Sign in
+              </Link>
+            </Typography>
+          </Box>
+        </Paper>
       </Container>
     </Box>
   );
-};
+}
 
-export default ResetPassword; 
+export default ResetPassword;

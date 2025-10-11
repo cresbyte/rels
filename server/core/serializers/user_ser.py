@@ -8,6 +8,7 @@ def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
 
     # Add custom claims - include all relevant user information
+    refresh["user_id"] = str(user.id)
     refresh["email"] = user.email
     refresh["first_name"] = user.first_name
     refresh["last_name"] = user.last_name
@@ -60,6 +61,7 @@ class LoginSerializer(serializers.Serializer):
 
 class UserSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
+    profile_picture_url = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -69,11 +71,21 @@ class UserSerializer(serializers.ModelSerializer):
             "first_name",
             "last_name",
             "full_name",
+            "profile_picture",
+            "profile_picture_url",
         ]
         read_only_fields = ["id"]
 
     def get_full_name(self, obj):
         return obj.full_name
+    
+    def get_profile_picture_url(self, obj):
+        if obj.profile_picture:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.profile_picture.url)
+            return obj.profile_picture.url
+        return None
 
 
 class PasswordResetRequestSerializer(serializers.Serializer):
@@ -100,3 +112,20 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         if data['new_password'] != data['confirm_password']:
             raise serializers.ValidationError({"confirm_password": "Passwords do not match."})
         return data
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    """
+    Serializer for changing password when user is authenticated
+    """
+    current_password = serializers.CharField(required=True, write_only=True)
+    new_password = serializers.CharField(required=True, min_length=8, write_only=True)
+
+    def validate_current_password(self, value):
+        """
+        Validate that the current password is correct
+        """
+        user = self.context['request'].user
+        if not user.check_password(value):
+            raise serializers.ValidationError("Current password is incorrect.")
+        return value

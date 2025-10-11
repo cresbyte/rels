@@ -31,6 +31,7 @@ import {
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import ThemeSwitcher from "../../context/ThemeSwitcher";
+import { useAuth } from "../../auth/auth/AuthContext";
 
 // Tab configuration
 const TABS = [
@@ -40,7 +41,8 @@ const TABS = [
   { label: "Upload", value: "Upload" },
 ];
 
-function TopBar({ onLogout, user, handleLogout }) {
+function TopBar({ onLogout,  handleLogout }) {
+  const {user} = useAuth();
   const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
@@ -111,6 +113,26 @@ function TopBar({ onLogout, user, handleLogout }) {
       document.documentElement.requestFullscreen();
     } else {
       document.exitFullscreen();
+    }
+  };
+
+  // Navigation handler
+  const changeScreen = (screen) => {
+    switch (screen) {
+      case "Home":
+        navigate("/dashboard");
+        break;
+      case "Profile":
+        navigate("/dashboard/profile");
+        break;
+      case "Organization":
+        navigate("/dashboard/organization");
+        break;
+      case "Settings":
+        navigate("/dashboard/settings");
+        break;
+      default:
+        navigate("/dashboard");
     }
   };
 
@@ -281,10 +303,10 @@ function TopBar({ onLogout, user, handleLogout }) {
                   transition: "all 0.2s ease",
                 }}
               >
-                {user?.profile_pic ? (
+                {user?.profile_picture_url ? (
                   <Avatar
-                    src={user.profile_pic}
-                    alt={user?.first_name}
+                    src={user.profile_picture_url}
+                    alt={`${user?.first_name} ${user?.last_name}`}
                     sx={{ width: 36, height: 36 }}
                   />
                 ) : (
@@ -297,8 +319,7 @@ function TopBar({ onLogout, user, handleLogout }) {
                       boxShadow: "0 4px 8px rgba(80, 72, 229, 0.3)",
                     }}
                   >
-                    {user?.first_name?.[0]}
-                    {user?.last_name?.[0]}
+                    {user?.first_name?.[0]}{user?.last_name?.[0]}
                   </Avatar>
                 )}
               </IconButton>
@@ -355,7 +376,7 @@ function TopBar({ onLogout, user, handleLogout }) {
               Signed in as
             </Typography>
             <Typography component="div" variant="body2" fontWeight={600} noWrap>
-              {user?.email || "user@example.com"}
+              {user?.email || "Loading..."}
             </Typography>
           </Box>
           <Divider sx={{ my: 1 }} />

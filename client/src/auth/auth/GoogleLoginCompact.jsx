@@ -3,16 +3,15 @@ import { GoogleLogin } from "@react-oauth/google";
 import axios from "axios";
 import { useAuth } from "./AuthContext";
 import { useNavigate } from "react-router-dom";
-import { useApi } from "../ApiContext";
 
 const GoogleLoginCompact = () => {
     const { setUser, setError } = useAuth();
     const navigate = useNavigate();
-    const { api } = useApi();
     const handleSuccess = async (credentialResponse) => {
         try {
             // Send ID token to backend
-            const response = await api.post(`/accounts/google-login/`, {
+            const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+            const response = await axios.post(`${API_URL}/accounts/google-login/`, {
                 id_token: credentialResponse.credential,
             });
 

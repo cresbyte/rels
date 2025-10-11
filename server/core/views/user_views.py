@@ -27,6 +27,7 @@ from core.serializers.user_ser import (
     get_tokens_for_user,
     PasswordResetRequestSerializer,
     PasswordResetConfirmSerializer,
+    ChangePasswordSerializer,
 )
 from core.models import User
 # Celery tasks removed for simplicity
@@ -155,22 +156,20 @@ class UserDetailView(APIView):
                 user.first_name = request.data['first_name']
             if 'last_name' in request.data:
                 user.last_name = request.data['last_name']
-            # ensure only name fields are updated
+            if 'profile_picture' in request.data:
+                user.profile_picture = request.data['profile_picture']
+            
             # Save the user with updated fields
             user.save()
             
-            # Generate new tokens with updated user data
-            tokens = get_tokens_for_user(user)
-            
-            return Response({
-                "user": serializer.data,
-                "tokens": tokens
-            })
+            # Return updated user data
+            updated_serializer = UserSerializer(user, context={"request": request})
+            return Response(updated_serializer.data)
             
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class RequestPasswordResetView(APIView):
+class ForgotPasswordView(APIView):
     """
     API view for requesting a password reset.
     Sends a 6-digit code to the user's email that expires in 10 minutes.
@@ -211,6 +210,52 @@ class RequestPasswordResetView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+class VerifyResetCodeView(APIView):
+    """
+    API view for verifying a password reset code.
+    """
+    permission_classes = [permissions.AllowAny]
+    
+    def post(self, request):
+        email = request.data.get('email')
+        verification_code = request.data.get('verification_code')
+        
+        if not email or not verification_code:
+            return Response(
+                {"error": "Email and verification code are required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            user = User.objects.get(email=email)
+            
+            # Check if reset code is valid
+            if not user.password_reset_code or user.password_reset_code != verification_code:
+                return Response(
+                    {"error": "Invalid verification code"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Check if code is expired (10 minutes)
+            if not user.password_reset_code_created_at or \
+               timezone.now() > user.password_reset_code_created_at + timezone.timedelta(minutes=10):
+                return Response(
+                    {"error": "Verification code has expired. Please request a new one."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            return Response(
+                {"message": "Verification code is valid"},
+                status=status.HTTP_200_OK
+            )
+            
+        except User.DoesNotExist:
+            return Response(
+                {"error": "No account found with this email"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+
 class ResetPasswordView(APIView):
     """
     API view for resetting a password using the verification code.
@@ -218,58 +263,82 @@ class ResetPasswordView(APIView):
     permission_classes = [permissions.AllowAny]
     
     def post(self, request):
-        serializer = PasswordResetConfirmSerializer(data=request.data)
-        if serializer.is_valid():
-            email = serializer.validated_data['email']
-            reset_code = serializer.validated_data['reset_code']
-            new_password = serializer.validated_data['new_password']
+        email = request.data.get('email')
+        verification_code = request.data.get('verification_code')
+        new_password = request.data.get('new_password')
+        
+        if not all([email, verification_code, new_password]):
+            return Response(
+                {"error": "Email, verification code, and new password are required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if len(new_password) < 8:
+            return Response(
+                {"error": "Password must be at least 8 characters long"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            user = User.objects.get(email=email)
             
-            try:
-                user = User.objects.get(email=email)
-                
-                # Check if reset code is valid
-                if not user.password_reset_code or user.password_reset_code != reset_code:
-                    return Response(
-                        {"error": "Invalid reset code"},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-                
-                # Check if code is expired (10 minutes)
-                if not user.password_reset_code_created_at or \
-                   timezone.now() > user.password_reset_code_created_at + timezone.timedelta(minutes=10):
-                    return Response(
-                        {"error": "Reset code has expired. Please request a new one."},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-                
-                # Reset password
-                user.set_password(new_password)
-                
-                # Clear reset code
-                user.password_reset_code = None
-                user.password_reset_code_created_at = None
-                user.save()
-                
-                # Generate new tokens
-                tokens = get_tokens_for_user(user)
-                
-                # Return success response with tokens
+            # Check if reset code is valid
+            if not user.password_reset_code or user.password_reset_code != verification_code:
                 return Response(
-                    {
-                        "message": "Password reset successful",
-                        "tokens": tokens
-                    },
-                    status=status.HTTP_200_OK
-                )
-                
-            except User.DoesNotExist:
-                return Response(
-                    {"error": "No account found with this email"},
+                    {"error": "Invalid verification code"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-                
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Check if code is expired (10 minutes)
+            if not user.password_reset_code_created_at or \
+               timezone.now() > user.password_reset_code_created_at + timezone.timedelta(minutes=10):
+                return Response(
+                    {"error": "Verification code has expired. Please request a new one."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Reset password
+            user.set_password(new_password)
+            
+            # Clear reset code
+            user.password_reset_code = None
+            user.password_reset_code_created_at = None
+            user.save()
+            
+            return Response(
+                {"message": "Password reset successful"},
+                status=status.HTTP_200_OK
+            )
+            
+        except User.DoesNotExist:
+            return Response(
+                {"error": "No account found with this email"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
+
+
+class ChangePasswordView(APIView):
+    """
+    API view for changing password when user is authenticated
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request):
+        serializer = ChangePasswordSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            user = request.user
+            new_password = serializer.validated_data['new_password']
+            
+            # Set new password
+            user.set_password(new_password)
+            user.save()
+            
+            return Response(
+                {"message": "Password changed successfully"},
+                status=status.HTTP_200_OK
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 # Celery tasks removed for simplicity
