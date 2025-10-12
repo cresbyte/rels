@@ -16,7 +16,9 @@ import {
   TextField,
   Typography,
   alpha,
-  useTheme
+  useTheme,
+  CircularProgress,
+  Alert
 } from "@mui/material";
 import {
   CheckCircle,
@@ -28,8 +30,9 @@ import {
   User,
   Users
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useApi } from "../../api/axios";
 
 // Styled components matching your existing style
 const StyledCard = ({ children, ...props }) => {
@@ -58,8 +61,8 @@ const StyledCard = ({ children, ...props }) => {
 
 
 
-// Type mapping
-const getTypeConfig = (type, theme) => {
+// Type mapping - maps backend scenario to display type
+const getTypeConfig = (scenario, theme) => {
   const configs = {
     self: {
       label: "Self-Sign",
@@ -80,12 +83,18 @@ const getTypeConfig = (type, theme) => {
       backgroundColor: alpha(theme.palette.info.main, 0.1),
     },
   };
-  return configs[type] || configs.self;
+  return configs[scenario] || configs.self;
 };
 
 // Status mapping
 const getStatusConfig = (status, theme) => {
   const configs = {
+    pending: {
+      label: "Pending",
+      icon: <Clock size={16} />,
+      color: "default",
+      backgroundColor: alpha(theme.palette.grey[500], 0.1),
+    },
     completed: {
       label: "Completed",
       icon: <CheckCircle size={16} />,
@@ -105,97 +114,52 @@ const getStatusConfig = (status, theme) => {
       backgroundColor: alpha(theme.palette.primary.main, 0.1),
     },
   };
-  return configs[status] || configs.in_progress;
+  return configs[status] || configs.pending;
 };
 
-// Sample documents data
-const SAMPLE_DOCUMENTS = [
-  {
-    id: "doc1",
-    title: "Service Agreement – John",
-    type: "private",
-    signers: [
-      { id: "s1", name: "John Doe", status: "signed" },
-      { id: "s2", name: "Mary Smith", status: "signed" },
-      { id: "s3", name: "Peter Johnson", status: "awaiting" },
-    ],
-    status: "in_progress",
-    updatedAt: new Date(Date.now() - 10 * 60 * 1000),
-  },
-  {
-    id: "doc2",
-    title: "NDA Template",
-    type: "public",
-    submissions: 12,
-    status: "active",
-    updatedAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
-  },
-  {
-    id: "doc3",
-    title: "Consultant Agreement",
-    type: "self",
-    status: "completed",
-    updatedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-  },
-  {
-    id: "doc4",
-    title: "Partnership Agreement",
-    type: "private",
-    signers: [
-      { id: "s1", name: "Partner A", status: "signed" },
-      { id: "s2", name: "Partner B", status: "signed" },
-    ],
-    status: "completed",
-    updatedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-  },
-  {
-    id: "doc5",
-    title: "Terms of Service",
-    type: "self",
-    status: "completed",
-    updatedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-  },
-  {
-    id: "doc6",
-    title: "Medical Form",
-    type: "public",
-    submissions: 45,
-    status: "active",
-    updatedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
-  },
-  {
-    id: "doc7",
-    title: "Employment Contract",
-    type: "private",
-    signers: [
-      { id: "s1", name: "HR Manager", status: "signed" },
-      { id: "s2", name: "New Hire", status: "awaiting" },
-    ],
-    status: "in_progress",
-    updatedAt: new Date(Date.now() - 15 * 60 * 1000),
-  },
-  {
-    id: "doc8",
-    title: "Personal Declaration",
-    type: "self",
-    status: "completed",
-    updatedAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
-  },
-];
+// Helper function to add dummy progress data to real documents
+const addDummyProgressData = (documents) => {
+  return documents.map((doc, index) => {
+    // Add dummy progress data based on document scenario
+    let progressData = {};
+    
+    if (doc.scenario === "private") {
+      // Dummy signers data for multi-signer documents
+      progressData.signers = [
+        { id: "s1", name: "Signer 1", status: index % 2 === 0 ? "signed" : "awaiting" },
+        { id: "s2", name: "Signer 2", status: "awaiting" },
+      ];
+      // Use real status from backend, don't override it
+    } else if (doc.scenario === "public") {
+      // Dummy submissions data for public forms
+      progressData.submissions = Math.floor(Math.random() * 50) + 1;
+      // Use real status from backend, don't override it
+    }
+    // For self-sign documents, use real status from backend
+    
+    return {
+      ...doc,
+      ...progressData,
+      // Map scenario to type for compatibility with existing code
+      type: doc.scenario,
+    };
+  });
+};
 
 // Document table row
 const DocumentTableRow = ({ document, onClick, theme }) => {
-  const typeConfig = getTypeConfig(document.type, theme);
+  const typeConfig = getTypeConfig(document.scenario || document.type, theme);
   const statusConfig = getStatusConfig(document.status, theme);
 
   // Calculate progress text
   let progressText = "N/A";
-  if (document.type === "private" && document.signers) {
+  const docType = document.scenario || document.type;
+  if (docType === "private" && document.signers) {
     const signedCount = document.signers.filter(
       (s) => s.status === "signed"
     ).length;
     progressText = `${signedCount}/${document.signers.length} signed`;
-  } else if (document.type === "public") {
+  } else if (docType === "public") {
     progressText = document.submissions
       ? `${document.submissions} submissions`
       : "0 submissions";
@@ -248,7 +212,7 @@ const DocumentTableRow = ({ document, onClick, theme }) => {
         <Typography variant="body2" fontWeight={500}>
           {progressText}
         </Typography>
-        {document.type === "private" && document.signers && (
+        {docType === "private" && document.signers && (
           <Typography variant="caption" color="text.secondary">
             {document.signers.filter((s) => s.status === "awaiting").length}{" "}
             awaiting
@@ -272,10 +236,10 @@ const DocumentTableRow = ({ document, onClick, theme }) => {
 
       <TableCell>
         <Typography variant="body2">
-          {new Date(document.updatedAt).toLocaleDateString()}
+          {new Date(document.updated_at).toLocaleDateString()}
         </Typography>
         <Typography variant="caption" color="text.secondary">
-          {new Date(document.updatedAt).toLocaleTimeString([], {
+          {new Date(document.updated_at).toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",
           })}
@@ -289,24 +253,48 @@ const DocumentTableRow = ({ document, onClick, theme }) => {
 const DocumentsTable = () => {
   const theme = useTheme();
   const navigate = useNavigate();
+  const { api } = useApi();
   const [activeTab, setActiveTab] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [documents, setDocuments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const tabs = ["All", "Self-Sign", "Multi-Signer", "Public Form"];
 
+  // Fetch documents from backend
+  useEffect(() => {
+    const fetchDocuments = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await api.get("documents/");
+        const documentsWithDummyData = addDummyProgressData(response.data.results);
+        setDocuments(documentsWithDummyData);
+      } catch (err) {
+        console.error("Error fetching documents:", err);
+        setError("Failed to load documents. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDocuments();
+  }, [api]);
+
   // Filter and paginate documents
   const filteredDocuments = useMemo(() => {
-    let filtered = [...SAMPLE_DOCUMENTS];
+    let filtered = [...documents];
 
     // Apply tab filter
     if (activeTab === 1)
-      filtered = filtered.filter((doc) => doc.type === "self");
+      filtered = filtered.filter((doc) => doc.scenario === "self");
     if (activeTab === 2)
-      filtered = filtered.filter((doc) => doc.type === "private");
+      filtered = filtered.filter((doc) => doc.scenario === "private");
     if (activeTab === 3)
-      filtered = filtered.filter((doc) => doc.type === "public");
+      filtered = filtered.filter((doc) => doc.scenario === "public");
 
     // Apply search filter
     if (searchTerm) {
@@ -319,8 +307,8 @@ const DocumentsTable = () => {
     }
 
     // Sort by updated date (newest first)
-    return filtered.sort((a, b) => b.updatedAt - a.updatedAt);
-  }, [activeTab, searchTerm]);
+    return filtered.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+  }, [documents, activeTab, searchTerm]);
 
   const paginatedDocuments = useMemo(() => {
     return filteredDocuments.slice(
@@ -353,6 +341,26 @@ const DocumentsTable = () => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
   };
+
+  // Show loading state
+  if (loading) {
+    return (
+      <Box sx={{ p: 0, display: "flex", justifyContent: "center", alignItems: "center", minHeight: 400 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <Box sx={{ p: 0 }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ p: 0 }}>

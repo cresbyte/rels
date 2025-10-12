@@ -29,6 +29,9 @@ from core.serializers.user_ser import (
     PasswordResetRequestSerializer,
     PasswordResetConfirmSerializer,
     ChangePasswordSerializer,
+    EmailVerificationRequestSerializer,
+    EmailVerificationConfirmSerializer,
+    CompleteRegistrationSerializer,
 )
 from core.models import User
 
@@ -362,6 +365,192 @@ class ChangePasswordView(APIView):
                 {"message": "Password changed successfully"}, status=status.HTTP_200_OK
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class EmailVerificationRequestView(APIView):
+    """
+    API view for requesting email verification code during registration.
+    Creates a temporary user record if email doesn't exist.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        serializer = EmailVerificationRequestSerializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data["email"]
+
+            # Check if user already exists
+            try:
+                user = User.objects.get(email=email)
+                if user.is_email_verified:
+                    return Response(
+                        {"error": "Email is already registered and verified"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+            except User.DoesNotExist:
+                # Create a temporary user record for verification
+                user = User.objects.create_user(
+                    email=email,
+                    first_name="",  # Will be filled during completion
+                    last_name="",   # Will be filled during completion
+                    password="",    # Will be set during completion
+                    is_active=False,  # User is not active until verification is complete
+                )
+
+            # Generate a 6-digit verification code
+            verification_code = "".join(random.choices(string.digits, k=6))
+
+            # Save code to user model with timestamp
+            user.email_verification_code = verification_code
+            user.email_verification_code_created_at = timezone.now()
+            user.save()
+
+            # For testing purposes, print the code
+            print(f"Email verification code for {user.email}: {verification_code}")
+
+            # TODO: Send actual email here
+            # send_verification_email.delay(user.email, verification_code)
+
+            return Response(
+                {"message": "Verification code sent to your email"},
+                status=status.HTTP_200_OK,
+            )
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class EmailVerificationConfirmView(APIView):
+    """
+    API view for confirming email verification code.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        serializer = EmailVerificationConfirmSerializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data["email"]
+            verification_code = serializer.validated_data["verification_code"]
+
+            try:
+                user = User.objects.get(email=email)
+
+                # Check if verification code is valid
+                if (
+                    not user.email_verification_code
+                    or user.email_verification_code != verification_code
+                ):
+                    return Response(
+                        {"error": "Invalid verification code"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                # Check if code is expired (10 minutes)
+                if (
+                    not user.email_verification_code_created_at
+                    or timezone.now()
+                    > user.email_verification_code_created_at + timezone.timedelta(minutes=10)
+                ):
+                    return Response(
+                        {
+                            "error": "Verification code has expired. Please request a new one."
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                # Mark email as verified
+                user.is_email_verified = True
+                user.save()
+
+                return Response(
+                    {"message": "Email verified successfully"}, 
+                    status=status.HTTP_200_OK
+                )
+
+            except User.DoesNotExist:
+                return Response(
+                    {"error": "No verification request found for this email"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class CompleteRegistrationView(APIView):
+    """
+    API view for completing registration after email verification.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        serializer = CompleteRegistrationSerializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data["email"]
+            verification_code = serializer.validated_data["verification_code"]
+            first_name = serializer.validated_data["first_name"]
+            last_name = serializer.validated_data["last_name"]
+            password = serializer.validated_data["password"]
+
+            try:
+                user = User.objects.get(email=email)
+
+                # Verify that email is verified and code is still valid
+                if not user.is_email_verified:
+                    return Response(
+                        {"error": "Email must be verified first"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                # Double-check verification code
+                if (
+                    not user.email_verification_code
+                    or user.email_verification_code != verification_code
+                ):
+                    return Response(
+                        {"error": "Invalid verification code"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                # Check if code is expired (10 minutes)
+                if (
+                    not user.email_verification_code_created_at
+                    or timezone.now()
+                    > user.email_verification_code_created_at + timezone.timedelta(minutes=10)
+                ):
+                    return Response(
+                        {
+                            "error": "Verification code has expired. Please start the registration process again."
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                # Complete the user registration
+                user.first_name = first_name
+                user.last_name = last_name
+                user.set_password(password)
+                user.is_active = True
+                
+                # Clear verification code
+                user.email_verification_code = None
+                user.email_verification_code_created_at = None
+                
+                user.save()
+
+                # Generate tokens for the newly registered user
+                tokens = get_tokens_for_user(user)
+                user_data = UserSerializer(user, context={"request": request}).data
+
+                return Response(
+                    {"user": user_data, "tokens": tokens}, 
+                    status=status.HTTP_201_CREATED
+                )
+
+            except User.DoesNotExist:
+                return Response(
+                    {"error": "No verification request found for this email"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 # Celery tasks removed for simplicity

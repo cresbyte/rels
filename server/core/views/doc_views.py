@@ -8,13 +8,17 @@ class IsOwner(permissions.BasePermission):
     Custom permission to allow only the owner of a document to access or modify it.
     """
 
+    def has_permission(self, request, view):
+        # Allow authenticated users to create documents
+        return request.user and request.user.is_authenticated
+
     def has_object_permission(self, request, view, obj):
         return obj.owner == request.user
 
 
 class DocumentViewSet(viewsets.ModelViewSet):
     serializer_class = DocumentSerializer
-    permission_classes = [permissions.IsAuthenticated, IsOwner]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         # Only show documents belonging to the authenticated user

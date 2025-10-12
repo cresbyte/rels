@@ -110,6 +110,71 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const requestEmailVerification = async (email) => {
+    try {
+      setError(null);
+      const response = await axios.post(`${API_URL}/accounts/email-verification-request/`, {
+        email,
+      });
+      return response.data;
+    } catch (err) {
+      setError(err.response?.data || "Failed to send verification code");
+      throw err;
+    }
+  };
+
+  const confirmEmailVerification = async (email, verificationCode) => {
+    try {
+      setError(null);
+      const response = await axios.post(`${API_URL}/accounts/email-verification-confirm/`, {
+        email,
+        verification_code: verificationCode,
+      });
+      return response.data;
+    } catch (err) {
+      setError(err.response?.data || "Email verification failed");
+      throw err;
+    }
+  };
+
+  const completeRegistration = async (formData) => {
+    try {
+      setError(null);
+      const response = await axios.post(`${API_URL}/accounts/complete-registration/`, {
+        email: formData.email,
+        verification_code: formData.verification_code,
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        password: formData.password,
+        confirm_password: formData.confirm_password,
+      });
+
+      const { user: userData, tokens } = response.data;
+
+      // Store tokens in localStorage
+      localStorage.setItem("accessToken", tokens.access);
+      localStorage.setItem("refreshToken", tokens.refresh);
+
+      // Set auth headers for future requests
+      axios.defaults.headers.common["Authorization"] =
+        `Bearer ${tokens.access}`;
+
+      // Update user state with all fields
+      setUser({
+        id: userData.id,
+        email: userData.email,
+        first_name: userData.first_name,
+        last_name: userData.last_name,
+      });
+
+      return userData;
+    } catch (err) {
+      setError(err.response?.data || "Registration completion failed");
+      throw err;
+    }
+  };
+
+  // Keep the old register method for backward compatibility (Google login, etc.)
   const register = async (
     firstName,
     lastName,
@@ -423,8 +488,11 @@ export const AuthProvider = ({ children }) => {
     verifyAccount,
     isAuthenticated: !!user,
     refreshAccessToken,
-
     updateUser,
+    // New email verification methods
+    requestEmailVerification,
+    confirmEmailVerification,
+    completeRegistration,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

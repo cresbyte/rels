@@ -37,6 +37,11 @@ class User(AbstractBaseUser, PermissionsMixin):
     )
     password_reset_code = models.CharField(max_length=6, blank=True, null=True)
     password_reset_code_created_at = models.DateTimeField(null=True, blank=True)
+    
+    # Email verification fields for registration
+    email_verification_code = models.CharField(max_length=6, blank=True, null=True)
+    email_verification_code_created_at = models.DateTimeField(null=True, blank=True)
+    is_email_verified = models.BooleanField(default=False)
 
     # Required fields for Django admin
     is_active = models.BooleanField(default=True)
@@ -62,11 +67,20 @@ def user_document_upload_path(instance, filename):
 
 
 class Document(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('in_progress', 'In Progress'),
+        ('completed', 'Completed'),
+        ('active', 'Active'),
+    ]
+    
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL, related_name="document", on_delete=models.CASCADE
     )
     title = models.CharField(max_length=255)
+    scenario = models.CharField(max_length=255, default="self")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     file = models.FileField(upload_to=user_document_upload_path)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

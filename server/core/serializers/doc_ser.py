@@ -9,5 +9,5 @@ class DocumentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Document
-        fields = ["id", "owner", "title", "file", "created_at", "updated_at"]
+        fields = ["id", "owner", "title", "scenario", "status", "file", "created_at", "updated_at"]
         read_only_fields = ["id", "owner", "created_at", "updated_at"]

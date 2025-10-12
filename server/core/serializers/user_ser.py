@@ -140,3 +140,35 @@ class ChangePasswordSerializer(serializers.Serializer):
         if not user.check_password(value):
             raise serializers.ValidationError("Current password is incorrect.")
         return value
+
+
+class EmailVerificationRequestSerializer(serializers.Serializer):
+    """
+    Serializer for requesting email verification code during registration
+    """
+    email = serializers.EmailField(required=True)
+
+
+class EmailVerificationConfirmSerializer(serializers.Serializer):
+    """
+    Serializer for confirming email verification code
+    """
+    email = serializers.EmailField(required=True)
+    verification_code = serializers.CharField(required=True, max_length=6, min_length=6)
+
+
+class CompleteRegistrationSerializer(serializers.Serializer):
+    """
+    Serializer for completing registration after email verification
+    """
+    email = serializers.EmailField(required=True)
+    verification_code = serializers.CharField(required=True, max_length=6, min_length=6)
+    first_name = serializers.CharField(required=True, max_length=150)
+    last_name = serializers.CharField(required=True, max_length=150)
+    password = serializers.CharField(required=True, min_length=8, write_only=True)
+    confirm_password = serializers.CharField(required=True, write_only=True)
+
+    def validate(self, data):
+        if data['password'] != data['confirm_password']:
+            raise serializers.ValidationError({"confirm_password": "Passwords do not match."})
+        return data

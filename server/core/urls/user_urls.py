@@ -10,6 +10,9 @@ from core.views.user_views import (
     VerifyResetCodeView,
     ResetPasswordView,
     ChangePasswordView,
+    EmailVerificationRequestView,
+    EmailVerificationConfirmView,
+    CompleteRegistrationView,
 )
 
 
@@ -39,5 +42,21 @@ urlpatterns = [
         "change-password/",
         ChangePasswordView.as_view(),
         name="change_password",
+    ),
+    # Email verification endpoints for registration
+    path(
+        "email-verification-request/",
+        EmailVerificationRequestView.as_view(),
+        name="email_verification_request",
+    ),
+    path(
+        "email-verification-confirm/",
+        EmailVerificationConfirmView.as_view(),
+        name="email_verification_confirm",
+    ),
+    path(
+        "complete-registration/",
+        CompleteRegistrationView.as_view(),
+        name="complete_registration",
     ),
 ]
