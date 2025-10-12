@@ -7,17 +7,14 @@ import {
   useTheme,
 } from "@mui/material";
 import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
-import { Routes, Route, useLocation, useParams } from "react-router-dom";
+import { useState } from "react";
+import { useLocation } from "react-router-dom";
 
 // Import custom components
-import api from "../../api/axios";
-import { useAuth } from "../../auth/auth/AuthContext";
 import AnalyticsDashboard from "../analytics/AnalyticsDashboard";
 import DocumentDetailRoute from "../documents/DocumentDetailRoute";
 import DocumentsTable from "../documents/DocumentsTable";
 import UploadDocuments from "../documents/UploadFlow";
-import OrganizationSettings from "../settings/OrganizationSettings";
 import UserProfile from "../settings/UserProfile";
 import TopBar from "./TopBar";
 
@@ -44,12 +41,9 @@ const loadingVariants = {
 // Main dashboard layout component
 function DashboardLayout() {
   const theme = useTheme();
-  const { currentUser, logout, loading: authLoading } = useAuth();
   const location = useLocation();
-  const [userData, setUserData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
-  console.log(currentUser)
 
   // Determine active screen based on URL
   const getActiveScreen = () => {
@@ -65,30 +59,7 @@ function DashboardLayout() {
 
   const activeScreen = getActiveScreen();
 
-  // Fetch additional user details if needed
-  useEffect(() => {
-    const fetchUserData = async () => {
-      if (currentUser) {
-        try {
-          // Fetch fresh user data to ensure we have the latest
-          const response = await api.get("me/");
-          setUserData(response.data);
-          setLoading(false);
-        } catch (error) {
-          setLoading(false);
-        }
-      } else if (!authLoading) {
-        setLoading(false);
-      }
-    };
 
-    fetchUserData();
-  }, [currentUser, authLoading]);
-
-  const handleLogout = () => {
-    logout();
-    // Redirect to login page will be handled by the auth interceptor in axios.jsx
-  };
 
   // Determine which content to display
   const renderContent = () => {
@@ -104,15 +75,9 @@ function DashboardLayout() {
 
       case "Upload":
         return <UploadDocuments />;
-      case "Settings":
-        return (
-          <OrganizationSettings
-            organization={userData?.organization || {}}
-            user={userData || currentUser}
-          />
-        );
+   
       case "Profile":
-        return <UserProfile user={userData || currentUser} />;
+        return <UserProfile  />;
 
       default:
         return <Typography> wetfewf ewrgf</Typography>;
@@ -197,8 +162,7 @@ function DashboardLayout() {
     >
       <CssBaseline />
       <TopBar
-        handleLogout={handleLogout}
-        onLogout={handleLogout}
+    
       />
 
       <Box

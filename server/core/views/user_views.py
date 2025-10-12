@@ -17,6 +17,7 @@ from datetime import timedelta
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.core.mail import EmailMultiAlternatives
+
 # Celery removed for simplicity
 import logging
 
@@ -30,6 +31,7 @@ from core.serializers.user_ser import (
     ChangePasswordSerializer,
 )
 from core.models import User
+
 # Celery tasks removed for simplicity
 
 logger = logging.getLogger(__name__)
@@ -43,7 +45,7 @@ class RegisterView(APIView):
         if serializer.is_valid():
             user = serializer.save()
             # Welcome email removed for simplicity - will add back later
-            
+
             tokens = get_tokens_for_user(user)
             user_data = UserSerializer(user, context={"request": request}).data
             return Response(
@@ -114,7 +116,7 @@ class GoogleLoginView(APIView):
                 user.set_unusable_password()
                 user.save()
                 is_new_user = True
-                
+
                 # Welcome email removed for simplicity - will add back later
 
             # Generate tokens
@@ -136,7 +138,6 @@ class GoogleLoginView(APIView):
             )
 
 
-
 class UserDetailView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
@@ -152,20 +153,20 @@ class UserDetailView(APIView):
         if serializer.is_valid():
             # Handle specific fields that need updating
             user = request.user
-            if 'first_name' in request.data:
-                user.first_name = request.data['first_name']
-            if 'last_name' in request.data:
-                user.last_name = request.data['last_name']
-            if 'profile_picture' in request.data:
-                user.profile_picture = request.data['profile_picture']
-            
+            if "first_name" in request.data:
+                user.first_name = request.data["first_name"]
+            if "last_name" in request.data:
+                user.last_name = request.data["last_name"]
+            if "profile_picture" in request.data:
+                user.profile_picture = request.data["profile_picture"]
+
             # Save the user with updated fields
             user.save()
-            
+
             # Return updated user data
             updated_serializer = UserSerializer(user, context={"request": request})
             return Response(updated_serializer.data)
-            
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -174,37 +175,42 @@ class ForgotPasswordView(APIView):
     API view for requesting a password reset.
     Sends a 6-digit code to the user's email that expires in 10 minutes.
     """
+
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
         serializer = PasswordResetRequestSerializer(data=request.data)
         if serializer.is_valid():
-            email = serializer.validated_data['email']
-            
+            email = serializer.validated_data["email"]
+
             # Check if user exists
             try:
                 user = User.objects.get(email=email)
             except User.DoesNotExist:
                 # For security reasons, we'll still return success even if user doesn't exist
                 return Response(
-                    {"message": "If your email is registered, you will receive a password reset code."},
-                    status=status.HTTP_200_OK
+                    {
+                        "message": "If your email is registered, you will receive a password reset code."
+                    },
+                    status=status.HTTP_200_OK,
                 )
 
             # Generate a 6-digit reset code
-            reset_code = ''.join(random.choices(string.digits, k=6))
-            
+            reset_code = "".join(random.choices(string.digits, k=6))
+
             # Save code to user model with timestamp
             user.password_reset_code = reset_code
             user.password_reset_code_created_at = timezone.now()
             user.save()
-            
+
             # Password reset email removed for simplicity - will add back later
             print(f"Password reset code for {user.email}: {reset_code}")  # For testing
-            
+
             return Response(
-                {"message": "If your email is registered, you will receive a password reset code."},
-                status=status.HTTP_200_OK
+                {
+                    "message": "If your email is registered, you will receive a password reset code."
+                },
+                status=status.HTTP_200_OK,
             )
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -214,45 +220,53 @@ class VerifyResetCodeView(APIView):
     """
     API view for verifying a password reset code.
     """
+
     permission_classes = [permissions.AllowAny]
-    
+
     def post(self, request):
-        email = request.data.get('email')
-        verification_code = request.data.get('verification_code')
-        
+        email = request.data.get("email")
+        verification_code = request.data.get("verification_code")
+
         if not email or not verification_code:
             return Response(
                 {"error": "Email and verification code are required"},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
-        
+
         try:
             user = User.objects.get(email=email)
-            
+
             # Check if reset code is valid
-            if not user.password_reset_code or user.password_reset_code != verification_code:
+            if (
+                not user.password_reset_code
+                or user.password_reset_code != verification_code
+            ):
                 return Response(
                     {"error": "Invalid verification code"},
-                    status=status.HTTP_400_BAD_REQUEST
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
-            
+
             # Check if code is expired (10 minutes)
-            if not user.password_reset_code_created_at or \
-               timezone.now() > user.password_reset_code_created_at + timezone.timedelta(minutes=10):
+            if (
+                not user.password_reset_code_created_at
+                or timezone.now()
+                > user.password_reset_code_created_at + timezone.timedelta(minutes=10)
+            ):
                 return Response(
-                    {"error": "Verification code has expired. Please request a new one."},
-                    status=status.HTTP_400_BAD_REQUEST
+                    {
+                        "error": "Verification code has expired. Please request a new one."
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
-            
+
             return Response(
-                {"message": "Verification code is valid"},
-                status=status.HTTP_200_OK
+                {"message": "Verification code is valid"}, status=status.HTTP_200_OK
             )
-            
+
         except User.DoesNotExist:
             return Response(
                 {"error": "No account found with this email"},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
 
@@ -260,83 +274,92 @@ class ResetPasswordView(APIView):
     """
     API view for resetting a password using the verification code.
     """
+
     permission_classes = [permissions.AllowAny]
-    
+
     def post(self, request):
-        email = request.data.get('email')
-        verification_code = request.data.get('verification_code')
-        new_password = request.data.get('new_password')
-        
+        email = request.data.get("email")
+        verification_code = request.data.get("verification_code")
+        new_password = request.data.get("new_password")
+
         if not all([email, verification_code, new_password]):
             return Response(
                 {"error": "Email, verification code, and new password are required"},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
-        
+
         if len(new_password) < 8:
             return Response(
                 {"error": "Password must be at least 8 characters long"},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
-        
+
         try:
             user = User.objects.get(email=email)
-            
+
             # Check if reset code is valid
-            if not user.password_reset_code or user.password_reset_code != verification_code:
+            if (
+                not user.password_reset_code
+                or user.password_reset_code != verification_code
+            ):
                 return Response(
                     {"error": "Invalid verification code"},
-                    status=status.HTTP_400_BAD_REQUEST
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
-            
+
             # Check if code is expired (10 minutes)
-            if not user.password_reset_code_created_at or \
-               timezone.now() > user.password_reset_code_created_at + timezone.timedelta(minutes=10):
+            if (
+                not user.password_reset_code_created_at
+                or timezone.now()
+                > user.password_reset_code_created_at + timezone.timedelta(minutes=10)
+            ):
                 return Response(
-                    {"error": "Verification code has expired. Please request a new one."},
-                    status=status.HTTP_400_BAD_REQUEST
+                    {
+                        "error": "Verification code has expired. Please request a new one."
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
-            
+
             # Reset password
             user.set_password(new_password)
-            
+
             # Clear reset code
             user.password_reset_code = None
             user.password_reset_code_created_at = None
             user.save()
-            
+
             return Response(
-                {"message": "Password reset successful"},
-                status=status.HTTP_200_OK
+                {"message": "Password reset successful"}, status=status.HTTP_200_OK
             )
-            
+
         except User.DoesNotExist:
             return Response(
                 {"error": "No account found with this email"},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
-
 
 
 class ChangePasswordView(APIView):
     """
     API view for changing password when user is authenticated
     """
+
     permission_classes = [permissions.IsAuthenticated]
-    
+
     def post(self, request):
-        serializer = ChangePasswordSerializer(data=request.data, context={'request': request})
+        serializer = ChangePasswordSerializer(
+            data=request.data, context={"request": request}
+        )
         if serializer.is_valid():
             user = request.user
-            new_password = serializer.validated_data['new_password']
-            
+            new_password = serializer.validated_data["new_password"]
+
             # Set new password
             user.set_password(new_password)
             user.save()
-            
+
             return Response(
-                {"message": "Password changed successfully"},
-                status=status.HTTP_200_OK
+                {"message": "Password changed successfully"}, status=status.HTTP_200_OK
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

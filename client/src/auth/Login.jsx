@@ -132,7 +132,7 @@ function Login() {
               color: "white",
             }}
           >
-            TRAE
+            RelaySign
           </Typography>
         </Box>
       </Box>

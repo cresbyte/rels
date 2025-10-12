@@ -61,7 +61,7 @@ const GoogleLoginButton = () => {
   };
 
   return (
-    <Box sx={{ width: "100%", display: "flex", justifyContent: "center", border:"1px solid red" }}>
+    <Box sx={{ width: "100%", display: "flex", justifyContent: "center", border:"1px solid red", }}>
       <GoogleLogin
         onSuccess={handleSuccess}
         onError={handleError}
@@ -70,7 +70,8 @@ const GoogleLoginButton = () => {
         width="100%"
         text="continue_with"
         logo_alignment="left"
-        theme="dark"
+        theme="filled_transparent"
+        border="1px solid black"
       />
     </Box>
   );

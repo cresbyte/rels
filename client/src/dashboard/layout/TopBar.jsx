@@ -41,8 +41,8 @@ const TABS = [
   { label: "Upload", value: "Upload" },
 ];
 
-function TopBar({ onLogout,  handleLogout }) {
-  const {user} = useAuth();
+function TopBar() {
+  const {user, logout} = useAuth();
   const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
@@ -63,6 +63,7 @@ function TopBar({ onLogout,  handleLogout }) {
     if (path === "/dashboard/profile") return "Profile";
     return "Home";
   };
+
 
   const currentScreen = getCurrentScreen();
 
@@ -303,9 +304,9 @@ function TopBar({ onLogout,  handleLogout }) {
                   transition: "all 0.2s ease",
                 }}
               >
-                {user?.profile_picture_url ? (
+                {user?.profile_pic ? (
                   <Avatar
-                    src={user.profile_picture_url}
+                    src={user.profile_pic}
                     alt={`${user?.first_name} ${user?.last_name}`}
                     sx={{ width: 36, height: 36 }}
                   />
@@ -319,7 +320,8 @@ function TopBar({ onLogout,  handleLogout }) {
                       boxShadow: "0 4px 8px rgba(80, 72, 229, 0.3)",
                     }}
                   >
-                    {user?.first_name?.[0]}{user?.last_name?.[0]}
+                    {user?.first_name?.[0]}
+                    {user?.last_name?.[0]}
                   </Avatar>
                 )}
               </IconButton>
@@ -426,7 +428,7 @@ function TopBar({ onLogout,  handleLogout }) {
               whileHover={{ x: 5, backgroundColor: "rgba(244, 67, 54, 0.08)" }}
             >
               <MenuItem
-                onClick={handleLogoutClick}
+                onClick={logout}
                 sx={{
                   borderRadius: 1,
                   color: "error.main",

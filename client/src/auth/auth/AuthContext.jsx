@@ -45,13 +45,13 @@ export const AuthProvider = ({ children }) => {
           // Token expired and no refresh token
           logout();
         } else {
-          console.log("tokenDta:", tokenData)
           // Valid token, set user with all available fields
           setUser({
             id: tokenData.user_id,
             email: tokenData.email,
             first_name: tokenData.first_name,
             last_name: tokenData.last_name,
+            profile_pic: tokenData.profile_picture_url,
           });
         }
       } catch (err) {
@@ -409,7 +409,6 @@ export const AuthProvider = ({ children }) => {
   };
 
 
-  console.log("user:",user)
 
   const value = {
     user,

@@ -2,6 +2,7 @@ from rest_framework import serializers
 from core.models import User
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
+from backend.utils import get_absolute_media_url
 
 
 def get_tokens_for_user(user):
@@ -12,6 +13,15 @@ def get_tokens_for_user(user):
     refresh["email"] = user.email
     refresh["first_name"] = user.first_name
     refresh["last_name"] = user.last_name
+
+    # Make sure the profile picture URL is included with absolute URL
+    if user.profile_picture and hasattr(user.profile_picture, "url"):
+        # Use the utility function to ensure an absolute URL
+        refresh["profile_picture_url"] = get_absolute_media_url(
+            user.profile_picture.url
+        )
+    else:
+        refresh["profile_picture_url"] = ""
 
     return {
         "refresh": str(refresh),
@@ -73,12 +83,13 @@ class UserSerializer(serializers.ModelSerializer):
             "full_name",
             "profile_picture",
             "profile_picture_url",
+            "date_joined",
         ]
         read_only_fields = ["id"]
 
     def get_full_name(self, obj):
         return obj.full_name
-    
+
     def get_profile_picture_url(self, obj):
         if obj.profile_picture:
             request = self.context.get('request')

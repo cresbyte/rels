@@ -52,7 +52,8 @@ function UserProfile() {
   const fetchUserData = async () => {
     setLoading(true);
     try {
-      const response = await api.get("me/");
+      const response = await api.get("accounts/me/");
+      console.log(response.data);
       setUser(response.data);
 
       // Handle profile picture URL correctly
@@ -135,7 +136,7 @@ function UserProfile() {
 
       // We don't need to handle profile pic here anymore since it's auto-uploaded
 
-      await api.patch("me/", formData, {
+      await api.patch("accounts/me/", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
@@ -163,7 +164,7 @@ function UserProfile() {
     }
 
     try {
-      await api.post("change-password/", {
+      await api.post("accounts/change-password/", {
         current_password: passwordData.current_password,
         new_password: passwordData.new_password,
       });

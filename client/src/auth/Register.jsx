@@ -151,12 +151,12 @@ function Register() {
           p: 3,
         }}
       >
-        <Box 
-          sx={{ 
-            display: "flex", 
-            alignItems: "center", 
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
             gap: 1,
-            cursor: "pointer"
+            cursor: "pointer",
           }}
           onClick={() => navigate("/")}
         >
@@ -167,7 +167,7 @@ function Register() {
               color: "white",
             }}
           >
-            TRAE
+            RelaySign
           </Typography>
         </Box>
       </Box>
@@ -189,8 +189,7 @@ function Register() {
             width: "100%",
             background: "#2a2a2a",
             border: "1px solid #333",
-            maxWidth:"30rem"
-
+            maxWidth: "30rem",
           }}
         >
           <Box sx={{ maxWidth: 600, mx: "auto" }}>
@@ -222,7 +221,15 @@ function Register() {
             )}
 
             {/* Social Sign In Buttons */}
-            <Box sx={{ width: "100%", mb: 3, display: "flex", flexDirection: "column", gap: 2 }}>
+            <Box
+              sx={{
+                width: "100%",
+                mb: 3,
+                display: "flex",
+                flexDirection: "column",
+                gap: 2,
+              }}
+            >
               <GoogleLoginButton />
             </Box>
 

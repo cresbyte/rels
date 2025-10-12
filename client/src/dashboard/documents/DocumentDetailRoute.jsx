@@ -89,7 +89,7 @@ const DocumentDetailRoute = () => {
                 setError(null);
 
                 // Simulate API call delay
-                await new Promise(resolve => setTimeout(resolve, 500));
+                await new Promise(resolve => setTimeout(resolve, 100));
 
                 // Find document by ID
                 const foundDocument = SAMPLE_DOCUMENTS.find(doc => doc.id === id);

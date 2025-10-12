@@ -8,13 +8,13 @@ import {
   useTheme,
 } from "@mui/material";
 import { useEffect, useState } from "react";
-import api from "../../api/axios";
 import DashboardStatistics from "./DashboardStatistics";
 import MySignatures from "./MySignatures";
 import RecentDocuments from "./RecentDocuments";
-import UploadDocuments from "../documents/UploadFlow";
+import { useApi } from "../../api/axios";
 
-const AnalyticsDashboard = ({ refreshKey }) => {
+const AnalyticsDashboard = () => {
+  const {api} = useApi()
   const theme = useTheme();
   // DashboardPage state
   const [pageData, setPageData] = useState({
@@ -130,76 +130,9 @@ const AnalyticsDashboard = ({ refreshKey }) => {
     const intervalId = setInterval(fetchAllDashboardData, 300000);
 
     return () => clearInterval(intervalId);
-  }, [refreshKey]);
+  }, []);
 
-  // We're using a full-screen loading state to prevent layout jumps
-  if (loading && !pageData.summary) {
-    return (
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 3,
-          width: "100%",
-        }}
-      >
-        {/* Skeleton for statistics cards */}
-        <DashboardStatistics loading={true} />
 
-        {/* Skeleton for main chart area */}
-        <Box
-          sx={{
-            width: "100%",
-            height: "400px",
-            bgcolor: alpha(theme.palette.background.paper, 0.4),
-            borderRadius: 1,
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <CircularProgress />
-        </Box>
-
-        {/* Skeleton for staff performance and leaderboard */}
-        <Grid container spacing={3} sx={{ mt: 2 }}>
-          <Grid size={{ xs: 12, md: 6 }}>
-            <Box
-              sx={{
-                height: "300px",
-                bgcolor: alpha(theme.palette.background.paper, 0.4),
-                borderRadius: 1,
-              }}
-            />
-          </Grid>
-          <Grid size={{ xs: 12, md: 6 }}>
-            <Box
-              sx={{
-                height: "300px",
-                bgcolor: alpha(theme.palette.background.paper, 0.4),
-                borderRadius: 1,
-              }}
-            />
-          </Grid>
-        </Grid>
-
-        {/* Skeleton for lead sources */}
-        <Box
-          sx={{
-            width: "100%",
-            height: "300px",
-            bgcolor: alpha(theme.palette.background.paper, 0.4),
-            borderRadius: 1,
-            mt: 2,
-          }}
-        />
-      </Box>
-    );
-  }
-
-  if (error) {
-    return <Alert severity="error">{error}</Alert>;
-  }
 
   return (
     <Stack spacing={6}>
