@@ -1,18 +1,18 @@
 import {
   Box,
   CircularProgress,
-  IconButton,
   Typography,
   alpha,
   useTheme,
 } from "@mui/material";
-import { Info, ZoomIn, ZoomOut } from "lucide-react";
-import React, { useRef, useState, useEffect } from "react";
-import * as pdfjsLib from 'pdfjs-dist';
+import * as pdfjsLib from "pdfjs-dist";
+import { useEffect, useRef, useState } from "react";
 
-// Configure PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// If using a bundler that handles worker entry points
+import "pdfjs-dist/build/pdf.worker";
 
+// Alternatively, if you need to specify the path manually (e.g., for CDN or public folder)
+pdfjsLib.GlobalWorkerOptions.workerSrc = "./pdf.worker.min.mjs";
 const DocumentCanvas = ({
   document,
   zoom,
@@ -32,6 +32,7 @@ const DocumentCanvas = ({
   const [totalPages, setTotalPages] = useState(0);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [pdfError, setPdfError] = useState(null);
+  const [pageDimensions, setPageDimensions] = useState({ width: 0, height: 0 });
 
   // Load PDF document
   useEffect(() => {
@@ -44,19 +45,19 @@ const DocumentCanvas = ({
     try {
       setPdfLoading(true);
       setPdfError(null);
-      
+
       const loadingTask = pdfjsLib.getDocument(url);
       const pdf = await loadingTask.promise;
-      
+
       setPdfDocument(pdf);
       setTotalPages(pdf.numPages);
       setCurrentPage(1);
-      
+
       // Render first page
       await renderPdfPage(pdf, 1);
     } catch (error) {
-      console.error('Error loading PDF:', error);
-      setPdfError('Failed to load PDF document');
+      console.error("Error loading PDF:", error);
+      setPdfError("Failed to load PDF document");
     } finally {
       setPdfLoading(false);
     }
@@ -64,33 +65,45 @@ const DocumentCanvas = ({
 
   const renderPdfPage = async (pdf, pageNum) => {
     if (!pdfCanvasRef.current) return;
-    
+
     try {
       const page = await pdf.getPage(pageNum);
       const canvas = pdfCanvasRef.current;
-      const context = canvas.getContext('2d');
-      
-      const viewport = page.getViewport({ scale: 1.5 });
+      const context = canvas.getContext("2d");
+
+      // Use zoom factor in viewport calculation
+      const viewport = page.getViewport({ scale: zoom * 1.5 });
+
+      // Set canvas dimensions
       canvas.height = viewport.height;
       canvas.width = viewport.width;
-      
+
+      // Store original dimensions for overlay positioning
+      setPageDimensions({
+        width: viewport.width / (zoom * 1.5), // Original unzoomed dimensions
+        height: viewport.height / (zoom * 1.5),
+      });
+
+      // Clear canvas
+      context.clearRect(0, 0, canvas.width, canvas.height);
+
       const renderContext = {
         canvasContext: context,
-        viewport: viewport
+        viewport: viewport,
       };
-      
+
       await page.render(renderContext).promise;
     } catch (error) {
-      console.error('Error rendering PDF page:', error);
+      console.error("Error rendering PDF page:", error);
     }
   };
 
   // Re-render page when zoom changes
   useEffect(() => {
-    if (pdfDocument && currentPage) {
+    if (pdfDocument && currentPage && !pdfLoading) {
       renderPdfPage(pdfDocument, currentPage);
     }
-  }, [zoom, pdfDocument, currentPage]);
+  }, [zoom, pdfDocument, currentPage, pdfLoading]);
 
   return (
     <Box
@@ -147,7 +160,7 @@ const DocumentCanvas = ({
           >
             <CircularProgress size={60} thickness={4} />
             <Typography variant="h6" sx={{ mt: 2, fontWeight: 500 }}>
-              {!isDocumentLoaded ? 'Loading document...' : 'Rendering PDF...'}
+              {!isDocumentLoaded ? "Loading document..." : "Rendering PDF..."}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
               Please wait while we prepare your document
@@ -174,11 +187,20 @@ const DocumentCanvas = ({
             <Typography variant="h6" color="error" sx={{ fontWeight: 500 }}>
               PDF Loading Error
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1, textAlign: 'center' }}>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ mt: 1, textAlign: "center" }}
+            >
               {pdfError}
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1, textAlign: 'center' }}>
-              This might be due to CORS restrictions or the PDF file being corrupted.
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ mt: 1, textAlign: "center" }}
+            >
+              This might be due to CORS restrictions or the PDF file being
+              corrupted.
             </Typography>
           </Box>
         )}
@@ -219,6 +241,7 @@ const DocumentCanvas = ({
                 zIndex: 1,
                 backgroundColor: "#fff",
                 boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                display: "block", // Ensure canvas displays properly
               }}
               title={document.title}
             />
@@ -264,6 +287,11 @@ const DocumentCanvas = ({
                 right: 0,
                 bottom: 0,
                 zIndex: 2,
+                // Match canvas dimensions to maintain field positioning
+                width: `${pageDimensions.width}px`,
+                height: `${pageDimensions.height}px`,
+                transform: `scale(${zoom})`,
+                transformOrigin: "top left",
               }}
               onDrop={onFieldDrop}
               onDragOver={onFieldDragOver}
