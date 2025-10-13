@@ -72,9 +72,9 @@ const SAMPLE_DOCUMENT = {
 
 
 // Main component
-const SelfSigningDocument = ({ documentId = "doc1" }) => {
+const SelfSigningDocument = ({ doc }) => {
   const theme = useTheme();
-  const [document, setDocument] = useState(SAMPLE_DOCUMENT);
+  const [document, setDocument] = useState(doc);
   const [selectedField, setSelectedField] = useState(null);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [zoom, setZoom] = useState(1.0);

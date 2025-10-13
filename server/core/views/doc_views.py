@@ -3,19 +3,6 @@ from core.models import Document
 from core.serializers.doc_ser import DocumentSerializer
 
 
-class IsOwner(permissions.BasePermission):
-    """
-    Custom permission to allow only the owner of a document to access or modify it.
-    """
-
-    def has_permission(self, request, view):
-        # Allow authenticated users to create documents
-        return request.user and request.user.is_authenticated
-
-    def has_object_permission(self, request, view, obj):
-        return obj.owner == request.user
-
-
 class DocumentViewSet(viewsets.ModelViewSet):
     serializer_class = DocumentSerializer
     permission_classes = [permissions.IsAuthenticated]

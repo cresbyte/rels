@@ -24,6 +24,7 @@ const DocumentDetailRoute = () => {
                 // Fetch document from API
                 const response = await api.get(`documents/${id}/`);
                 const documentData = response.data;
+                console.log(documentData);
 
                 // Transform the API response to match the expected format
                 const transformedDocument = {
@@ -104,11 +105,11 @@ const DocumentDetailRoute = () => {
     const renderDocument = () => {
         switch (document.type) {
             case 'self':
-                return <SelfSigningDocument document={document} />;
+                return <SelfSigningDocument doc={document} />;
             case 'private':
-                return <MultiSigningDocument document={document} />;
+                return <MultiSigningDocument doc={document} />;
             case 'public':
-                return <PublicDocument document={document} />;
+                return <PublicDocument doc={document} />;
             default:
                 return (
                     <Box sx={{ p: 3 }}>

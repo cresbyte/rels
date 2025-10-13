@@ -7,7 +7,11 @@ import {
   useTheme,
 } from "@mui/material";
 import { Info, ZoomIn, ZoomOut } from "lucide-react";
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Configure PDF.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 const DocumentCanvas = ({
   document,
@@ -21,7 +25,72 @@ const DocumentCanvas = ({
   const theme = useTheme();
   const canvasRef = useRef(null);
   const documentRef = useRef(null);
+  const pdfCanvasRef = useRef(null);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [pdfDocument, setPdfDocument] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfError, setPdfError] = useState(null);
+
+  // Load PDF document
+  useEffect(() => {
+    if (document?.fileUrl && isDocumentLoaded) {
+      loadPdfDocument(document.fileUrl);
+    }
+  }, [document?.fileUrl, isDocumentLoaded]);
+
+  const loadPdfDocument = async (url) => {
+    try {
+      setPdfLoading(true);
+      setPdfError(null);
+      
+      const loadingTask = pdfjsLib.getDocument(url);
+      const pdf = await loadingTask.promise;
+      
+      setPdfDocument(pdf);
+      setTotalPages(pdf.numPages);
+      setCurrentPage(1);
+      
+      // Render first page
+      await renderPdfPage(pdf, 1);
+    } catch (error) {
+      console.error('Error loading PDF:', error);
+      setPdfError('Failed to load PDF document');
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
+  const renderPdfPage = async (pdf, pageNum) => {
+    if (!pdfCanvasRef.current) return;
+    
+    try {
+      const page = await pdf.getPage(pageNum);
+      const canvas = pdfCanvasRef.current;
+      const context = canvas.getContext('2d');
+      
+      const viewport = page.getViewport({ scale: 1.5 });
+      canvas.height = viewport.height;
+      canvas.width = viewport.width;
+      
+      const renderContext = {
+        canvasContext: context,
+        viewport: viewport
+      };
+      
+      await page.render(renderContext).promise;
+    } catch (error) {
+      console.error('Error rendering PDF page:', error);
+    }
+  };
+
+  // Re-render page when zoom changes
+  useEffect(() => {
+    if (pdfDocument && currentPage) {
+      renderPdfPage(pdfDocument, currentPage);
+    }
+  }, [zoom, pdfDocument, currentPage]);
 
   return (
     <Box
@@ -63,7 +132,7 @@ const DocumentCanvas = ({
         }}
       >
         {/* Loading State */}
-        {!isDocumentLoaded && (
+        {(!isDocumentLoaded || pdfLoading) && (
           <Box
             sx={{
               display: "flex",
@@ -78,7 +147,7 @@ const DocumentCanvas = ({
           >
             <CircularProgress size={60} thickness={4} />
             <Typography variant="h6" sx={{ mt: 2, fontWeight: 500 }}>
-              Loading document...
+              {!isDocumentLoaded ? 'Loading document...' : 'Rendering PDF...'}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
               Please wait while we prepare your document
@@ -86,8 +155,36 @@ const DocumentCanvas = ({
           </Box>
         )}
 
+        {/* PDF Error State */}
+        {pdfError && (
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "100%",
+              maxWidth: 800,
+              height: 600,
+              border: `2px solid ${theme.palette.error.main}`,
+              borderRadius: 2,
+              p: 3,
+            }}
+          >
+            <Typography variant="h6" color="error" sx={{ fontWeight: 500 }}>
+              PDF Loading Error
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1, textAlign: 'center' }}>
+              {pdfError}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1, textAlign: 'center' }}>
+              This might be due to CORS restrictions or the PDF file being corrupted.
+            </Typography>
+          </Box>
+        )}
+
         {/* PDF Document Display */}
-        {isDocumentLoaded && (
+        {isDocumentLoaded && !pdfError && (
           <Box
             ref={documentRef}
             sx={{
@@ -110,17 +207,18 @@ const DocumentCanvas = ({
             }}
             onDragLeave={() => setIsDragOver(false)}
           >
-            {/* PDF Viewer - Changed to embed for better compatibility */}
-            <embed
-              src={document.fileUrl}
-              type="application/pdf"
+            {/* PDF Canvas Renderer */}
+            <canvas
+              ref={pdfCanvasRef}
               style={{
                 width: "100%",
-                height: "100%",
-                minHeight: "800px", // Minimum height for visibility
-                border: "none",
+                height: "auto",
+                border: "1px solid #e0e0e0",
+                borderRadius: "4px",
                 position: "relative",
                 zIndex: 1,
+                backgroundColor: "#fff",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
               }}
               title={document.title}
             />
