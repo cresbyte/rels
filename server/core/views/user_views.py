@@ -14,8 +14,6 @@ import json
 from django.utils import timezone
 import traceback
 from datetime import timedelta
-from django.template.loader import render_to_string
-from django.utils.html import strip_tags
 from django.core.mail import EmailMultiAlternatives
 
 # Celery removed for simplicity
@@ -115,6 +113,7 @@ class GoogleLoginView(APIView):
                     first_name=idinfo.get("given_name", ""),
                     last_name=idinfo.get("family_name", ""),
                     password=None,  # Password not needed for OAuth users
+                    is_email_verified = True,  # Mark email as verified
                 )
                 user.set_unusable_password()
                 user.save()
