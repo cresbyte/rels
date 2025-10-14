@@ -107,3 +107,7 @@ The foundation is complete. You can now:
 5. Add document saving functionality
 
 All backend and frontend components are working together seamlessly!
+
+
+
+ need you to @PdfCanvas.jsx  split this int manageable components like 3 of them(create a folder called canvas and have them there _mGsj2y9g7WIvDDkwiwt8mVxrSaqewk0bX7Az) to avoid having 900 lines of code in one file, also when repositioning the field inside the document and you want to adjust the position, it appears like you are making c copy of that field and when you are dragging it, I can see it in the original placement and when I drop the mouse that when that initial placement disappears so I want you to look on that
