@@ -6,6 +6,8 @@
   -webkit-font-smoothing: antialiased;
 }
 
+/* Tailwind removed */
+
 body {
   margin: 0;
   display: flex;

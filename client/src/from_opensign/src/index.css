@@ -1,6 +1,4 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Tailwind removed */
 
 body {
   background-color: white;
@@ -29,54 +27,12 @@ body {
 }
 
 /* below css class replace bootstrap background color with daisy */
-.op-bg-primary {
-  @apply bg-primary;
-}
-
-.op-bg-secondary {
-  @apply bg-secondary;
-}
-
-.op-bg-info {
-  @apply bg-info;
-}
-
-.op-bg-success {
-  @apply bg-success;
-}
-
-.op-bg-warning {
-  @apply bg-warning;
-}
+/* Removed DaisyUI background utilities */
 
 /* below css class replace bootstrap text color with daisy */
-.op-text-primary {
-  @apply text-primary;
-}
+/* Removed DaisyUI text utilities */
 
-.op-text-secondary {
-  @apply text-secondary;
-}
-
-.op-text-info {
-  @apply text-info;
-}
-
-.op-text-accent {
-  @apply text-accent;
-}
-
-.op-text-success {
-  @apply text-success;
-}
-
-.op-text-warning {
-  @apply text-warning;
-}
-
-.op-border-primary {
-  @apply border-primary;
-}
+/* Removed DaisyUI border utilities */
 
 /* CSS for scrollbar customization */
 * {
@@ -101,7 +57,7 @@ body {
 }
 
 .op-border-hover {
-  @apply border-gray-300 hover:border-base-content;
+  border-color: #d1d5db; /* gray-300 */
 }
 
 /* Note: Dark mode styling is now handled via Tailwind utilities in tailwind.config.js */
@@ -110,7 +66,7 @@ body {
 /* React-tour and ReactTooltip dark mode styling */
 [data-theme="opensigndark"] {
   .op-border-hover {
-    @apply border-gray-700 hover:border-base-content;
+    border-color: #374151; /* gray-700 */
   }
 
   /* for change calender icon of input date type */

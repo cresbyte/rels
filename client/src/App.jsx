@@ -22,6 +22,7 @@ import ContactUs from "./home/ContactUs";
 import FAQs from "./home/FAQs";
 import NotFound from "./home/NotFound";
 import OpaigeLandingPage from "./home/OpaigeLandingPage";
+import OpenSignDocument from "./dashboard/documents/OpenSignDocument";
 
 // ScrollToTop component
 function ScrollToTop() {
@@ -123,7 +124,7 @@ function App() {
                   path="/dashboard/documents/:id"
                   element={
                     <PrivateRoute>
-                      <DashboardLayout />
+                      <OpenSignDocument />
                     </PrivateRoute>
                   }
                 />

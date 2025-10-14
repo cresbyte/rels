@@ -82,8 +82,80 @@ class Document(models.Model):
     scenario = models.CharField(max_length=255, default="self")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     file = models.FileField(upload_to=user_document_upload_path)
+    is_public = models.BooleanField(default=False)  # For public forms
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.title
+
+
+class Widget(models.Model):
+    """Model to store field definitions and their data types"""
+    WIDGET_TYPES = [
+        ('text', 'Text Input'),
+        ('email', 'Email'),
+        ('number', 'Number'),
+        ('date', 'Date'),
+        ('signature', 'Signature'),
+        ('checkbox', 'Checkbox'),
+        ('dropdown', 'Dropdown'),
+        ('textarea', 'Textarea'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=255)
+    widget_type = models.CharField(max_length=20, choices=WIDGET_TYPES)
+    label = models.CharField(max_length=255)
+    placeholder = models.CharField(max_length=255, blank=True, null=True)
+    required = models.BooleanField(default=False)
+    options = models.JSONField(default=dict, blank=True)  # For dropdown options, validation rules, etc.
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.widget_type})"
+
+
+class Contact(models.Model):
+    """Model to store user contacts"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL, related_name="contacts", on_delete=models.CASCADE
+    )
+    name = models.CharField(max_length=255)
+    email = models.EmailField()
+    phone = models.CharField(max_length=20, blank=True, null=True)
+    company = models.CharField(max_length=255, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ['owner', 'email']  # Prevent duplicate contacts per user
+
+    def __str__(self):
+        return f"{self.name} ({self.email})"
+
+
+class DocumentField(models.Model):
+    """Model to store document fields and their assigned contacts"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    document = models.ForeignKey(
+        Document, related_name="fields", on_delete=models.CASCADE
+    )
+    widget = models.ForeignKey(
+        Widget, related_name="document_fields", on_delete=models.CASCADE
+    )
+    contact = models.ForeignKey(
+        Contact, related_name="document_fields", on_delete=models.CASCADE, 
+        null=True, blank=True  # Null for public forms
+    )
+    field_data = models.JSONField(default=dict, blank=True)  # Store field-specific data like position, size, etc.
+    value = models.TextField(blank=True, null=True)  # Store the actual field value
+    is_completed = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        contact_name = self.contact.name if self.contact else "Public"
+        return f"{self.document.title} - {self.widget.name} ({contact_name})"
