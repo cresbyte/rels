@@ -17,7 +17,6 @@ import {
     Trash2,
     X,
 } from "lucide-react";
-import React from "react";
 import { ActionButton } from "../styles";
 
 const FieldSettings = ({
