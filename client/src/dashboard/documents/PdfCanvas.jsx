@@ -5,6 +5,7 @@ import {
 } from "@mui/icons-material";
 import {
   Alert,
+  Avatar,
   Box,
   Button,
   Chip,
@@ -84,11 +85,11 @@ function DroppedField({ field, onRemove, onSelect, onStartResize }) {
         top: field.y,
         px: 1,
         py: 0.5,
-        bgcolor: "transparent",
+        bgcolor: isDragging ?"rgba(33, 156, 160, 0.2)":"transparent",
         color: "text.primary",
         borderRadius: 0.5,
         userSelect: "none",
-        opacity: isDragging ? 0.6 : 1,
+        opacity: isDragging ? 0.9 : 1,
         display: "inline-flex",
         alignItems: "center",
         border: "1px solid rgba(0,0,0,0.2)",
@@ -119,9 +120,11 @@ function DroppedField({ field, onRemove, onSelect, onStartResize }) {
           onRemove(field.id);
         }}
         size="small"
-        sx={{ ml: 1, minWidth: 0, p: 0.25 }}
+        sx={{  minWidth: 0,position: "absolute",  right: -8 }}
         variant="text"
-        color="inherit"
+        color="error"
+        
+
       >
         ×
       </Button>
@@ -498,40 +501,37 @@ export default function PdfCanvas({ fileUrl }) {
               }}
             >
               <Typography variant="subtitle2">Contacts</Typography>
-              <Button
+              <IconButton
                 size="small"
-                startIcon={<AddIcon />}
                 onClick={() => setContactModalOpen(true)}
-                variant="outlined"
+                variant="contained"
+                color="primary"
               >
-                Add Contact
-              </Button>
+               <AddIcon />
+              </IconButton>
             </Box>
 
             {/* Selected Contacts */}
-            {selectedContacts.length > 0 && (
+            {selectedContacts.length > 0 ? (
               <Box sx={{ mb: 2 }}>
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  sx={{ mb: 1, display: "block" }}
-                >
-                  Selected Contacts:
-                </Typography>
+                
                 <Stack spacing={1}>
-                  {selectedContacts.map((contact) => (
+                  {selectedContacts.map((contact, index) => (
                     <Chip
-                      key={contact.id}
+                      key={index}
                       label={`${contact.name} (${contact.email})`}
                       onDelete={() => removeSelectedContact(contact.id)}
                       deleteIcon={<DeleteIcon />}
                       size="small"
-                      variant="outlined"
+                      sx={{ justifyContent: "space-between" }}
+                      avatar={<Avatar>{contact?.name?.charAt(0)}</Avatar>}
                     />
                   ))}
                 </Stack>
               </Box>
-            )}
+            ):<Typography variant="body2" sx={{ mb: 2 }}>
+            No contacts selected. Click + to add.
+          </Typography>}
           </Box>
 
           <Divider sx={{ my: 2 }} />

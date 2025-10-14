@@ -124,7 +124,7 @@ function App() {
                   path="/dashboard/documents/:id"
                   element={
                     <PrivateRoute>
-                      <OpenSignDocument />
+                      <DashboardLayout />
                     </PrivateRoute>
                   }
                 />

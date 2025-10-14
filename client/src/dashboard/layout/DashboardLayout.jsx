@@ -12,8 +12,8 @@ import { useLocation } from "react-router-dom";
 
 // Import custom components
 import AnalyticsDashboard from "../analytics/AnalyticsDashboard";
-import DocumentDetailRoute from "../documents/DocumentDetailRoute";
 import DocumentsTable from "../documents/DocumentsTable";
+import OpenSignDocument from "../documents/OpenSignDocument";
 import UploadDocuments from "../documents/UploadFlow";
 import UserProfile from "../settings/UserProfile";
 import TopBar from "./TopBar";
@@ -71,7 +71,7 @@ function DashboardLayout() {
         return <DocumentsTable />;
 
       case "DocumentDetail":
-        return <DocumentDetailRoute />;
+        return <OpenSignDocument />;
 
       case "Upload":
         return <UploadDocuments />;
