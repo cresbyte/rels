@@ -83,6 +83,7 @@ class Document(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     file = models.FileField(upload_to=user_document_upload_path)
     is_public = models.BooleanField(default=False)  # For public forms
+    public_token = models.CharField(max_length=255, blank=True, null=True)  # For public form access
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -150,6 +151,17 @@ class DocumentField(models.Model):
         Contact, related_name="document_fields", on_delete=models.CASCADE, 
         null=True, blank=True  # Null for public forms
     )
+    # Canvas-specific fields
+    widget_type = models.CharField(max_length=20, blank=True, null=True)  # Store widget type directly
+    label = models.CharField(max_length=255, blank=True, null=True)  # Store label directly
+    page_number = models.IntegerField(default=1)
+    x_position = models.FloatField(default=0)
+    y_position = models.FloatField(default=0)
+    width = models.FloatField(default=140)
+    height = models.FloatField(default=28)
+    recipient_id = models.CharField(max_length=255, blank=True, null=True)  # For multi-signer workflow
+    signature_data = models.TextField(blank=True, null=True)  # Store signature image data
+    
     field_data = models.JSONField(default=dict, blank=True)  # Store field-specific data like position, size, etc.
     value = models.TextField(blank=True, null=True)  # Store the actual field value
     is_completed = models.BooleanField(default=False)
@@ -159,3 +171,49 @@ class DocumentField(models.Model):
     def __str__(self):
         contact_name = self.contact.name if self.contact else "Public"
         return f"{self.document.title} - {self.widget.name} ({contact_name})"
+
+
+def get_default_expiry():
+    return timezone.now() + timedelta(days=30)
+
+
+class DocumentSigningSession(models.Model):
+    """Model to track signing sessions for multi-signer workflow"""
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('in_progress', 'In Progress'),
+        ('completed', 'Completed'),
+        ('expired', 'Expired'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    document = models.ForeignKey(
+        Document, related_name="signing_sessions", on_delete=models.CASCADE
+    )
+    contact = models.ForeignKey(
+        Contact, related_name="signing_sessions", on_delete=models.CASCADE
+    )
+    session_token = models.CharField(max_length=255, unique=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+    signed_at = models.DateTimeField(null=True, blank=True)
+    expires_at = models.DateTimeField(default=get_default_expiry)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.document.title} - {self.contact.name} ({self.status})"
+
+
+class PublicFormSubmission(models.Model):
+    """Model to store submissions for public forms"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    document = models.ForeignKey(
+        Document, related_name="public_submissions", on_delete=models.CASCADE
+    )
+    submitter_name = models.CharField(max_length=255)
+    submitter_email = models.EmailField(blank=True, null=True)
+    field_data = models.JSONField(default=dict)  # Store all field values
+    submitted_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.document.title} - {self.submitter_name} ({self.submitted_at})"

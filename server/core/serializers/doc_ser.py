@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from core.models import Document, Widget, Contact, DocumentField
+from core.models import Document, Widget, Contact, DocumentField, DocumentSigningSession, PublicFormSubmission
 
 
 class DocumentSerializer(serializers.ModelSerializer):
@@ -9,7 +9,7 @@ class DocumentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Document
-        fields = ["id", "owner", "title", "scenario", "status", "file", "is_public", "created_at", "updated_at"]
+        fields = ["id", "owner", "title", "scenario", "status", "file", "is_public", "public_token", "created_at", "updated_at"]
         read_only_fields = ["id", "owner", "created_at", "updated_at"]
 
 
@@ -39,8 +39,10 @@ class DocumentFieldSerializer(serializers.ModelSerializer):
     class Meta:
         model = DocumentField
         fields = [
-            "id", "document", "widget", "contact", "field_data", "value", 
-            "is_completed", "widget_name", "widget_type", "widget_label",
+            "id", "document", "widget", "contact", "widget_type", "label", 
+            "page_number", "x_position", "y_position", "width", "height",
+            "recipient_id", "signature_data", "field_data", "value", 
+            "is_completed", "widget_name", "widget_label",
             "contact_name", "contact_email", "created_at", "updated_at"
         ]
         read_only_fields = ["id", "created_at", "updated_at"]
@@ -83,3 +85,30 @@ class DocumentFieldCreateSerializer(serializers.ModelSerializer):
         validated_data['contact'] = contact
         
         return super().create(validated_data)
+
+
+class DocumentSigningSessionSerializer(serializers.ModelSerializer):
+    contact_name = serializers.CharField(source="contact.name", read_only=True)
+    contact_email = serializers.CharField(source="contact.email", read_only=True)
+    document_title = serializers.CharField(source="document.title", read_only=True)
+
+    class Meta:
+        model = DocumentSigningSession
+        fields = [
+            "id", "document", "contact", "session_token", "status", 
+            "signed_at", "expires_at", "contact_name", "contact_email",
+            "document_title", "created_at", "updated_at"
+        ]
+        read_only_fields = ["id", "session_token", "created_at", "updated_at"]
+
+
+class PublicFormSubmissionSerializer(serializers.ModelSerializer):
+    document_title = serializers.CharField(source="document.title", read_only=True)
+
+    class Meta:
+        model = PublicFormSubmission
+        fields = [
+            "id", "document", "submitter_name", "submitter_email", 
+            "field_data", "submitted_at", "document_title"
+        ]
+        read_only_fields = ["id", "submitted_at"]

@@ -2,11 +2,16 @@ from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
-from core.models import Document, Widget, Contact, DocumentField
+from django.core.mail import send_mail
+from django.conf import settings
+from django.utils.crypto import get_random_string
+from core.models import Document, Widget, Contact, DocumentField, DocumentSigningSession, PublicFormSubmission
 from core.serializers.doc_ser import (
     DocumentSerializer, WidgetSerializer, ContactSerializer, 
-    DocumentFieldSerializer, DocumentFieldCreateSerializer
+    DocumentFieldSerializer, DocumentFieldCreateSerializer,
+    DocumentSigningSessionSerializer, PublicFormSubmissionSerializer
 )
+import uuid
 
 
 class DocumentViewSet(viewsets.ModelViewSet):
@@ -62,6 +67,105 @@ class DocumentViewSet(viewsets.ModelViewSet):
                 {'error': 'Field not found'}, 
                 status=status.HTTP_404_NOT_FOUND
             )
+
+    @action(detail=True, methods=['post'])
+    def send_for_signing(self, request, pk=None):
+        """Send document for multi-signer workflow"""
+        document = self.get_object()
+        contacts = request.data.get('contacts', [])
+        fields = request.data.get('fields', [])
+        
+        if not contacts:
+            return Response({'error': 'At least one contact is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            # Create signing sessions for each contact
+            signing_sessions = []
+            for contact_id in contacts:
+                contact = Contact.objects.get(id=contact_id, owner=request.user)
+                session_token = get_random_string(32)
+                
+                session = DocumentSigningSession.objects.create(
+                    document=document,
+                    contact=contact,
+                    session_token=session_token,
+                    status='pending'
+                )
+                signing_sessions.append(session)
+                
+                # Send email to contact
+                signing_url = f"{settings.FRONTEND_URL}/sign/{session_token}"
+                send_mail(
+                    subject=f'Document signing request: {document.title}',
+                    message=f'You have been requested to sign a document. Please click the link below to sign:\n\n{signing_url}',
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[contact.email],
+                    fail_silently=False,
+                )
+            
+            serializer = DocumentSigningSessionSerializer(signing_sessions, many=True)
+            return Response({
+                'message': 'Document sent for signing successfully',
+                'sessions': serializer.data
+            })
+            
+        except Contact.DoesNotExist:
+            return Response({'error': 'Invalid contact'}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=True, methods=['post'])
+    def create_public_form(self, request, pk=None):
+        """Create a public form from the document"""
+        document = self.get_object()
+        
+        # Generate a unique public token
+        public_token = str(uuid.uuid4())
+        document.public_token = public_token
+        document.is_public = True
+        document.save()
+        
+        public_url = f"{settings.FRONTEND_URL}/public-form/{public_token}"
+        
+        return Response({
+            'message': 'Public form created successfully',
+            'public_url': public_url,
+            'public_token': public_token
+        })
+
+    @action(detail=True, methods=['get'])
+    def submissions(self, request, pk=None):
+        """Get all submissions for a public form"""
+        document = self.get_object()
+        if not document.is_public:
+            return Response({'error': 'Document is not a public form'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        submissions = PublicFormSubmission.objects.filter(document=document)
+        serializer = PublicFormSubmissionSerializer(submissions, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'])
+    def submit_public_form(self, request, pk=None):
+        """Submit a public form"""
+        document = self.get_object()
+        if not document.is_public:
+            return Response({'error': 'Document is not a public form'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        field_data = request.data.get('fields', {})
+        
+        # Create submission
+        submission = PublicFormSubmission.objects.create(
+            document=document,
+            field_data=field_data,
+            submitter_email=request.data.get('email', ''),
+            submitter_name=request.data.get('name', 'Anonymous')
+        )
+        
+        serializer = PublicFormSubmissionSerializer(submission)
+        return Response({
+            'message': 'Form submitted successfully',
+            'submission': serializer.data
+        })
 
 
 class WidgetViewSet(viewsets.ModelViewSet):
