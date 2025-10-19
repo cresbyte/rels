@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from "react";
 import { Box, CircularProgress, Typography } from "@mui/material";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useApi } from "../../api/axios";
-import PdfCanvas from "./PdfCanvas";
-
+import { UserProvider } from "./pdf-editor/UserContext";
+import PDFEditor from "./pdf-editor/PDFEditor";
 // This component bridges our dashboard route to the OpenSign canvas.
 // It intentionally delegates URL params to the OpenSign page, which reads useParams internally.
 export default function OpenSignDocument() {
@@ -20,6 +20,7 @@ export default function OpenSignDocument() {
         setLoading(true);
         setError(null);
         const resp = await api.get(`documents/${id}/`);
+        console.log(fileUrl)
         const doc = resp.data;
         if (!mounted) return;
         setFileUrl(doc.file);
@@ -30,12 +31,21 @@ export default function OpenSignDocument() {
         if (mounted) setLoading(false);
       }
     })();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [id, api]);
 
   if (loading) {
     return (
-      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", height: "70vh" }}>
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          height: "70vh",
+        }}
+      >
         <CircularProgress />
       </Box>
     );
@@ -43,15 +53,15 @@ export default function OpenSignDocument() {
   if (error || !fileUrl) {
     return (
       <Box sx={{ p: 3 }}>
-        <Typography variant="body2" color="error">{error || "PDF not available"}</Typography>
+        <Typography variant="body2" color="error">
+          {error || "PDF not available"}
+        </Typography>
       </Box>
     );
   }
   return (
-    <Box sx={{ width: "100%", height: "100%" }}>
-      <PdfCanvas fileUrl={fileUrl} />
-    </Box>
+    <UserProvider>
+      <PDFEditor fileURL={fileUrl} />
+    </UserProvider>
   );
 }
-
-

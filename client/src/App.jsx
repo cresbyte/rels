@@ -1,4 +1,5 @@
 import { Box, CssBaseline } from "@mui/material";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 import { useEffect } from "react";
 import {
   Route,
@@ -6,7 +7,6 @@ import {
   Routes,
   useLocation,
 } from "react-router-dom";
-import { GoogleOAuthProvider } from "@react-oauth/google";
 import EmailVerification from "./auth/EmailVerification";
 import Login from "./auth/Login";
 import PrivateRoute from "./auth/PrivateRoute";
@@ -18,12 +18,9 @@ import { AuthProvider } from "./auth/auth/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import DashboardLayout from "./dashboard/layout/DashboardLayout";
 import AboutUs from "./home/AboutUs";
-import ContactUs from "./home/ContactUs";
-import FAQs from "./home/FAQs";
 import NotFound from "./home/NotFound";
 import OpaigeLandingPage from "./home/OpaigeLandingPage";
-import OpenSignDocument from "./dashboard/documents/OpenSignDocument";
-
+import CheckoutPage from "./dashboard/plans/CheckoutPage";
 // ScrollToTop component
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -137,16 +134,30 @@ function App() {
                   }
                 />
                 <Route
-                  path="/dashboard/settings"
+                  path="/dashboard/contacts"
                   element={
                     <PrivateRoute>
                       <DashboardLayout />
                     </PrivateRoute>
                   }
                 />
+                <Route
+                  path="/dashboard/signature"
+                  element={
+                    <PrivateRoute>
+                      <DashboardLayout />
+                    </PrivateRoute>
+                  }
+                />
+                <Route path="/dashboard/plans"
+                  element={
+                    <PrivateRoute>
+                      <DashboardLayout />
+                    </PrivateRoute>
+                  }
+                />
+                <Route path="/checkout" element={<CheckoutPage/>} />
                 <Route path="/about" element={<AboutUs />} />
-                <Route path="/contact" element={<ContactUs />} />
-                <Route path="/faq" element={<FAQs />} />
 
                 <Route path="/" element={<OpaigeLandingPage />} />
                 <Route path="*" element={<NotFound />} />

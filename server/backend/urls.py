@@ -9,6 +9,8 @@ urlpatterns = [
     path('api/documents/', include('core.urls.doc_urls')),
     path('api/contacts/', include('core.urls.contact_urls')),
     path('api/widgets/', include('core.urls.widget_urls')),
+    path('api/signatures/', include('core.urls.signature_urls')),
+    path('api/', include('core.urls.signature_urls')),
 ]
 
 # Serve media files in development

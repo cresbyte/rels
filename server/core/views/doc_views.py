@@ -1,5 +1,5 @@
 from rest_framework import viewsets, permissions, status
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, parser_classes
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.core.mail import send_mail
@@ -7,12 +7,19 @@ from django.conf import settings
 from django.utils.crypto import get_random_string
 from core.models import Document, Widget, Contact, DocumentField, DocumentSigningSession, PublicFormSubmission
 from core.serializers.doc_ser import (
-    DocumentSerializer, WidgetSerializer, ContactSerializer, 
+    DocumentSerializer, DocumentCreateSerializer, WidgetSerializer, ContactSerializer, 
     DocumentFieldSerializer, DocumentFieldCreateSerializer,
     DocumentSigningSessionSerializer, PublicFormSubmissionSerializer
 )
+from rest_framework.parsers import MultiPartParser, FormParser
+from pypdf import PdfReader, PdfWriter
 import uuid
-
+import os
+from django.core.files.storage import default_storage
+from django.http import FileResponse
+from rest_framework.decorators import api_view, parser_classes
+from django.core.exceptions import ValidationError
+import io
 
 class DocumentViewSet(viewsets.ModelViewSet):
     serializer_class = DocumentSerializer
@@ -20,11 +27,57 @@ class DocumentViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         # Only show documents belonging to the authenticated user
-        return Document.objects.filter(owner=self.request.user)
+        queryset = Document.objects.filter(owner=self.request.user)
+        
+        # Apply filters from query parameters
+        status = self.request.query_params.get('status')
+        if status:
+            queryset = queryset.filter(status=status)
+        
+        search = self.request.query_params.get('search')
+        if search:
+            queryset = queryset.filter(title__icontains=search)
+        
+        # Filter for documents needing signature (for "Need your sign" report)
+        needs_signature = self.request.query_params.get('needs_signature')
+        user_id = self.request.query_params.get('user_id')
+        if needs_signature == 'true' and user_id:
+            # Get documents where user is a signer but hasn't completed signing
+            queryset = queryset.filter(
+                signers__id=user_id
+            ).exclude(
+                signing_sessions__contact__id=user_id,
+                signing_sessions__status='completed'
+            ).exclude(
+                status='completed'  # Don't show already completed documents
+            )
+        
+        return queryset
+
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return DocumentCreateSerializer
+        return DocumentSerializer
 
     def perform_create(self, serializer):
         # Automatically assign the logged-in user as the document owner
         serializer.save(owner=self.request.user)
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        Delete a document and its associated file, then return a success message.
+        """
+        instance = self.get_object()
+        
+        # Delete the file if it exists
+        if instance.file:
+            try:
+                instance.file.delete(save=False)
+            except Exception as e:
+                print(f"Error deleting document file: {e}")
+        
+        self.perform_destroy(instance)
+        return Response({"message": "Document deleted successfully"}, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['get', 'post'])
     def fields(self, request, pk=None):
@@ -218,15 +271,94 @@ class DocumentFieldViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(field)
         return Response(serializer.data)
 
-    @action(detail=True, methods=['patch'])
-    def update_value(self, request, pk=None):
-        """Update field value"""
-        field = self.get_object()
-        value = request.data.get('value')
+
+
+@api_view(['POST'])
+@parser_classes([MultiPartParser, FormParser])
+def decryptpdf(request):
+    """
+    Decrypt a password-protected PDF file.
+    Returns the decrypted PDF as a downloadable file.
+    """
+    try:
+        uploaded_file = request.FILES.get('file')
+        password = request.data.get('password', '')
         
-        field.value = value
-        field.is_completed = bool(value)
-        field.save()
+        if not uploaded_file:
+            return Response(
+                {'error': 'No file provided'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
-        serializer = self.get_serializer(field)
-        return Response(serializer.data)
+        # Read the PDF
+        pdf_reader = PdfReader(uploaded_file)
+        
+        if pdf_reader.is_encrypted:
+            if not pdf_reader.decrypt(password):
+                return Response(
+                    {'error': 'Incorrect password'}, 
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+        
+        # Write decrypted PDF to buffer
+        output_buffer = io.BytesIO()
+        pdf_writer = PdfWriter()
+        for page in pdf_reader.pages:
+            pdf_writer.add_page(page)
+        pdf_writer.write(output_buffer)
+        output_buffer.seek(0)  # Important: rewind buffer to start
+
+        # Return as FileResponse — this handles binary correctly
+        return FileResponse(
+            output_buffer,
+            content_type='application/pdf',
+            as_attachment=False,  # or True if you want "download"
+            filename='decrypted.pdf'
+        )
+
+    except Exception as e:
+        print('Error in decrypt file:', str(e))
+        error_message = 'Something went wrong during decryption.'
+        if 'password' in str(e).lower() or 'decrypt' in str(e).lower():
+            return Response({'error': 'Incorrect password'}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response({'error': error_message}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+@parser_classes([MultiPartParser, FormParser])
+def upload_file(request):
+    """
+    Upload a file and return a secure URL for the uploaded file.
+    """
+    try:
+        uploaded_file = request.FILES.get('file')
+        
+        if not uploaded_file:
+            return Response(
+                {'error': 'No file provided'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Generate a unique filename
+        file_extension = os.path.splitext(uploaded_file.name)[1]
+        unique_filename = f"{uuid.uuid4()}{file_extension}"
+        
+        # Save the file to storage
+        file_path = default_storage.save(f"uploads/{unique_filename}", uploaded_file)
+        
+        # Generate the file URL
+        file_url = default_storage.url(file_path)
+        
+        return Response({
+            'message': 'File uploaded successfully',
+            'url': file_url,
+            'filename': unique_filename
+        })
+        
+    except Exception as e:
+        print('Error in upload file:', str(e))
+        return Response(
+            {'error': 'Something went wrong during file upload'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+

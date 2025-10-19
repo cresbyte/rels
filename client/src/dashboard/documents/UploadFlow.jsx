@@ -89,15 +89,15 @@ const SCENARIOS = [
     color: "primary",
   },
   {
-    id: "private",
-    title: "Private Multi-Signer",
+    id: "request",
+    title: "Request Singatures",
     description:
       "Send to specific people to sign (e.g., contracts, agreements).",
     icon: <Users size={24} />,
     color: "secondary",
   },
   {
-    id: "public",
+    id: "template",
     title: "Public Form",
     description:
       "Anyone with the link can fill & sign (e.g., NDAs, consent forms).",

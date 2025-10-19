@@ -84,6 +84,7 @@
     "reactour": "^1.19.4",
     "recharts": "^2.15.3",
     "regex-parser": "^2.3.1",
+    "signature_pad": "^5.1.1",
     "styled-components": "^6.1.19",
     "xlsx": "^0.18.5"
   },

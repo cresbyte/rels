@@ -23,9 +23,11 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   Bell,
   Building2,
+  CreditCard,
   LogOut,
   Maximize,
   Settings,
+  Signature,
   User
 } from "lucide-react";
 import { useState } from "react";
@@ -38,6 +40,7 @@ const TABS = [
   { label: "Home", value: "Home" },
   { label: "Public", value: "Public" },
   { label: "Documents", value: "Documents" },
+  {label: "Contacts", value: "Contacts" },
   { label: "Upload", value: "Upload" },
 ];
 
@@ -59,8 +62,10 @@ function TopBar() {
     if (path === "/dashboard/documents") return "Documents";
     if (path.startsWith("/dashboard/documents/")) return "Documents";
     if (path === "/dashboard/upload") return "Upload";
-    if (path === "/dashboard/settings") return "Settings";
+    if (path === "/dashboard/signature") return "Signature";
     if (path === "/dashboard/profile") return "Profile";
+    if (path === "/dashboard/contacts") return "Contacts";
+    if( path === "/dashboard/plans") return "Plans";
     return "Home";
   };
 
@@ -75,6 +80,9 @@ function TopBar() {
         break;
       case "Documents":
         navigate("/dashboard/documents");
+        break;
+      case "Contacts":
+        navigate("/dashboard/contacts");
         break;
       case "Upload":
         navigate("/dashboard/upload");
@@ -93,11 +101,6 @@ function TopBar() {
     setAnchorEl(null);
   };
 
-  const handleLogoutClick = () => {
-    handleCloseUserMenu();
-    if (onLogout) onLogout();
-    else if (handleLogout) handleLogout();
-  };
 
   // Notification handlers
   const handleOpenNotifications = (event) => {
@@ -126,11 +129,14 @@ function TopBar() {
       case "Profile":
         navigate("/dashboard/profile");
         break;
-      case "Organization":
-        navigate("/dashboard/organization");
+      case "Contacts":
+        navigate("/dashboard/contacts");
         break;
-      case "Settings":
-        navigate("/dashboard/settings");
+      case "Signature":
+        navigate("/dashboard/signature");
+        break;
+      case "Plans":
+        navigate("/dashboard/plans");
         break;
       default:
         navigate("/dashboard");
@@ -394,31 +400,31 @@ function TopBar() {
                 </ListItemIcon>
                 <Typography variant="body2">My Profile</Typography>
               </MenuItem>
-            </motion.div>
-
-            <motion.div whileHover={{ x: 5 }}>
+            </motion.div>  <motion.div whileHover={{ x: 5 }}>
               <MenuItem
-                onClick={() => changeScreen("Organization")}
+                onClick={() => changeScreen("Signature")}
                 sx={{ borderRadius: 1, mb: 0.5 }}
               >
                 <ListItemIcon>
-                  <Building2 size={18} />
+                  <Signature size={18} />
                 </ListItemIcon>
-                <Typography variant="body2">Organization</Typography>
+                <Typography variant="body2">Signature</Typography>
               </MenuItem>
             </motion.div>
 
             <motion.div whileHover={{ x: 5 }}>
               <MenuItem
-                onClick={() => changeScreen("Settings")}
+                onClick={() => changeScreen("Plans")}
                 sx={{ borderRadius: 1, mb: 0.5 }}
               >
                 <ListItemIcon>
-                  <Settings size={18} />
+                  <CreditCard size={18} />
                 </ListItemIcon>
-                <Typography variant="body2">Settings</Typography>
+                <Typography variant="body2">My Plan</Typography>
               </MenuItem>
             </motion.div>
+
+          
           </Box>
 
           <Divider sx={{ my: 1 }} />

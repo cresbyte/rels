@@ -17,6 +17,9 @@ import OpenSignDocument from "../documents/OpenSignDocument";
 import UploadDocuments from "../documents/UploadFlow";
 import UserProfile from "../settings/UserProfile";
 import TopBar from "./TopBar";
+import ContactList from "../contacts/ContactList";
+import MySigns from "../signatures/MySigns";
+import BillingPlans from "../plans/BillingPlans";
 
 // Loading animation variants
 const loadingVariants = {
@@ -44,7 +47,6 @@ function DashboardLayout() {
   const location = useLocation();
   const [loading, setLoading] = useState(false);
 
-
   // Determine active screen based on URL
   const getActiveScreen = () => {
     const path = location.pathname;
@@ -52,32 +54,36 @@ function DashboardLayout() {
     if (path === "/dashboard/documents") return "Documents";
     if (path.startsWith("/dashboard/documents/")) return "DocumentDetail";
     if (path === "/dashboard/upload") return "Upload";
-    if (path === "/dashboard/settings") return "Settings";
+    if (path === "/dashboard/signature") return "Signature";
     if (path === "/dashboard/profile") return "Profile";
+    if (path === "/dashboard/contacts") return "Contacts";
+    if (path === "/dashboard/plans") return "Plans";
     return "Home";
   };
 
   const activeScreen = getActiveScreen();
 
-
-
   // Determine which content to display
   const renderContent = () => {
+
+    console.log("Active Screen:", activeScreen);
     switch (activeScreen) {
       case "Home":
         return <AnalyticsDashboard />;
-
       case "Documents":
         return <DocumentsTable />;
-
       case "DocumentDetail":
         return <OpenSignDocument />;
-
       case "Upload":
         return <UploadDocuments />;
-   
       case "Profile":
-        return <UserProfile  />;
+        return <UserProfile />;
+      case "Contacts":
+        return <ContactList />;
+      case "Signature":
+        return <MySigns />;
+      case "Plans":
+        return <BillingPlans/>
 
       default:
         return <Typography> wetfewf ewrgf</Typography>;
@@ -161,9 +167,7 @@ function DashboardLayout() {
       }}
     >
       <CssBaseline />
-      <TopBar
-    
-      />
+      <TopBar />
 
       <Box
         component="main"

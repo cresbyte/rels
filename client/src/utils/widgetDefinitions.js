@@ -1,0 +1,15 @@
+export const widgetDefinitions = [
+  { type: 'signature', label: 'Signature', icon: '✍️', defaultWidth: 150, defaultHeight: 60 },
+  { type: 'stamp', label: 'Stamp', icon: '🔖', defaultWidth: 120, defaultHeight: 80 },
+  { type: 'initials', label: 'Initials', icon: '📝', defaultWidth: 80, defaultHeight: 40 },
+  { type: 'text', label: 'Text Input', icon: 'A', defaultWidth: 150, defaultHeight: 30 },
+  { type: 'number', label: 'Number', icon: '#', defaultWidth: 100, defaultHeight: 30 },
+  { type: 'name', label: 'Name', icon: '👤', defaultWidth: 150, defaultHeight: 30 },
+  { type: 'jobTitle', label: 'Job Title', icon: '💼', defaultWidth: 150, defaultHeight: 30 },
+  { type: 'company', label: 'Company', icon: '🏢', defaultWidth: 150, defaultHeight: 30 },
+  { type: 'email', label: 'Email', icon: '📧', defaultWidth: 180, defaultHeight: 30 },
+  { type: 'date', label: 'Date', icon: '📅', defaultWidth: 120, defaultHeight: 30 },
+  { type: 'cells', label: 'Cells', icon: '🔲', defaultWidth: 100, defaultHeight: 30 },
+  { type: 'checkbox', label: 'Checkbox', icon: '☑️', defaultWidth: 30, defaultHeight: 30 },
+  { type: 'image', label: 'Image', icon: '🖼️', defaultWidth: 100, defaultHeight: 100 },
+];
