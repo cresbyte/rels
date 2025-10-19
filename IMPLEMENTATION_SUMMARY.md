@@ -110,4 +110,4 @@ All backend and frontend components are working together seamlessly!
 
 
 
- need you to @PdfCanvas.jsx  split this int manageable components like 3 of them(create a folder called canvas and have them there _mGsj2y9g7WIvDDkwiwt8mVxrSaqewk0bX7Az) to avoid having 900 lines of code in one file, also when repositioning the field inside the document and you want to adjust the position, it appears like you are making c copy of that field and when you are dragging it, I can see it in the original placement and when I drop the mouse that when that initial placement disappears so I want you to look on that
+Enhance the Document model, views, and serializers to store all document details in the backend. When accessing a document at http://localhost:5173/dashboard/documents/005f4874-3ab1-4159-bb1e-991ce8d207f8, ensure the endpoint /api/documents/005f4874-3ab1-4159-bb1e-991ce8d207f8/ returns all document fields and signer information. The system should function correctly with proper data rendering, transitioning from console logging in  to persistent backend storage. Implement this following DocuSign/OpenSign-like functionality with clean, maintainable code.
