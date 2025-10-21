@@ -19,6 +19,7 @@ const PDFCanvas = ({
   onDocumentLoad,
   currentUserId,
   onFieldClick,
+  documentScenario,
 }) => {
   const [pageWidth, setPageWidth] = useState(0);
   const [pageHeight, setPageHeight] = useState(0);
@@ -104,7 +105,8 @@ const PDFCanvas = ({
         >
           Page {currentPage}
         </div>
-        <Button onClick={() => navigate(-1)}>Back</Button>
+
+        <Button variant="outlined" onClick={() => navigate('/dashboard/documents')}>Back</Button>
         <ButtonGroup variant="outlined" size="small">
           <IconButton onClick={handleZoomOut} size="small">
             <ZoomOut />
@@ -185,8 +187,9 @@ const PDFCanvas = ({
                     onSelect={() => onFieldSelect(field.key)}
                     onChange={(newAttrs) => onFieldChange(field.key, newAttrs)}
                     onDelete={() => onFieldDelete(field.key)}
-                    isOwned={field.recipientId === currentUserId}
+                    isOwned={field.recipientId === currentUserId || documentScenario === 'self' || documentScenario === 'template'}
                     onClick={() => onFieldClick(field)}
+                    documentScenario={documentScenario}
                   />
                 ))}
               </Layer>

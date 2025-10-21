@@ -61,7 +61,7 @@ export default function OpenSignDocument() {
   }
   return (
     <UserProvider>
-      <PDFEditor fileURL={fileUrl} />
+      <PDFEditor fileURL={fileUrl} documentId={id} />
     </UserProvider>
   );
 }

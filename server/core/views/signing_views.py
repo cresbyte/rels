@@ -66,14 +66,36 @@ class PublicFormViewSet(viewsets.ReadOnlyModelViewSet):
     def submit(self, request, public_token=None):
         """Submit a public form"""
         document = self.get_object()
+        
+        # Get public form configuration
+        config = document.public_form_config or {}
+        required_fields = config.get('required_fields', {})
+        
+        # Validate required fields
+        name = request.data.get('name', '').strip()
+        email = request.data.get('email', '').strip()
+        phone = request.data.get('phone', '').strip()
+        
+        errors = {}
+        if required_fields.get('name', False) and not name:
+            errors['name'] = 'Name is required'
+        if required_fields.get('email', False) and not email:
+            errors['email'] = 'Email is required'
+        if required_fields.get('phone', False) and not phone:
+            errors['phone'] = 'Phone is required'
+        
+        if errors:
+            return Response({'errors': errors}, status=status.HTTP_400_BAD_REQUEST)
+        
         field_data = request.data.get('fields', {})
         
         # Create submission
         submission = PublicFormSubmission.objects.create(
             document=document,
             field_data=field_data,
-            submitter_email=request.data.get('email', ''),
-            submitter_name=request.data.get('name', 'Anonymous')
+            submitter_name=name or 'Anonymous',
+            submitter_email=email or None,
+            submitter_phone=phone or None
         )
         
         serializer = PublicFormSubmissionSerializer(submission)

@@ -165,6 +165,9 @@ class Document(models.Model):
     is_public = models.BooleanField(default=False)  # For public forms
     public_token = models.CharField(max_length=255, blank=True, null=True)  # For public form access
     
+    # Public form configuration
+    public_form_config = models.JSONField(default=dict, blank=True)  # Store required fields config
+    
     # Relationships
     signers = models.ManyToManyField(Contact, related_name="signed_documents", blank=True)
     bcc_contacts = models.ManyToManyField(Contact, related_name="bcc_documents", blank=True)
@@ -214,7 +217,8 @@ class DocumentField(models.Model):
         Document, related_name="fields", on_delete=models.CASCADE
     )
     widget = models.ForeignKey(
-        Widget, related_name="document_fields", on_delete=models.CASCADE
+        Widget, related_name="document_fields", on_delete=models.CASCADE,
+        null=True, blank=True  # Allow null for direct field creation
     )
     contact = models.ForeignKey(
         Contact, related_name="document_fields", on_delete=models.CASCADE, 
@@ -231,15 +235,24 @@ class DocumentField(models.Model):
     recipient_id = models.CharField(max_length=255, blank=True, null=True)  # For multi-signer workflow
     signature_data = models.TextField(blank=True, null=True)  # Store signature image data
     
+    # Enhanced field data storage
     field_data = models.JSONField(default=dict, blank=True)  # Store field-specific data like position, size, etc.
     value = models.TextField(blank=True, null=True)  # Store the actual field value
     is_completed = models.BooleanField(default=False)
+    
+    # Additional fields for PDF editor compatibility
+    scale = models.FloatField(default=1.0)  # Store the scale when field was created
+    is_stamp = models.BooleanField(default=False)  # For stamp fields
+    signature_type = models.CharField(max_length=20, blank=True, null=True)  # For signature fields
+    options = models.JSONField(default=dict, blank=True)  # Store field options like name, status, defaultValue
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         contact_name = self.contact.name if self.contact else "Public"
-        return f"{self.document.title} - {self.widget.name} ({contact_name})"
+        widget_name = self.widget.name if self.widget else self.label or "Unknown"
+        return f"{self.document.title} - {widget_name} ({contact_name})"
 
 
 def get_default_expiry():
@@ -281,6 +294,7 @@ class PublicFormSubmission(models.Model):
     )
     submitter_name = models.CharField(max_length=255)
     submitter_email = models.EmailField(blank=True, null=True)
+    submitter_phone = models.CharField(max_length=20, blank=True, null=True)
     field_data = models.JSONField(default=dict)  # Store all field values
     submitted_at = models.DateTimeField(auto_now_add=True)
 

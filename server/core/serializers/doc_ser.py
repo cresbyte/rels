@@ -15,6 +15,9 @@ class DocumentSerializer(serializers.ModelSerializer):
     owner_email = serializers.SerializerMethodField()
     signers = ContactSerializer(many=True, read_only=True)
     bcc_contacts = ContactSerializer(many=True, read_only=True)
+    fields = serializers.SerializerMethodField(method_name='get_document_fields')
+    recipients = serializers.SerializerMethodField()
+    public_submissions_count = serializers.SerializerMethodField()
     
     class Meta:
         model = Document
@@ -36,6 +39,86 @@ class DocumentSerializer(serializers.ModelSerializer):
     def get_owner_email(self, obj):
         """Return owner email for compatibility"""
         return obj.owner.email if obj.owner else ""
+    
+    def get_document_fields(self, obj):
+        """Return document fields organized by page"""
+        fields = obj.fields.all().order_by('page_number', 'created_at')
+        placeholders_by_page = {}
+        
+        for field in fields:
+            page = field.page_number
+            if page not in placeholders_by_page:
+                placeholders_by_page[page] = []
+            
+            field_data = {
+                "id": str(field.id),
+                "key": str(field.id),  # Use ID as key for frontend compatibility
+                "type": field.widget_type,
+                "label": field.label,
+                "xPosition": field.x_position,
+                "yPosition": field.y_position,
+                "Width": field.width,
+                "Height": field.height,
+                "scale": field.scale,
+                "isStamp": field.is_stamp,
+                "signatureType": field.signature_type,
+                "recipientId": field.recipient_id,
+                "value": field.value,
+                "isCompleted": field.is_completed,
+                "options": field.options,
+                "fieldData": field.field_data,
+                "signatureData": field.signature_data,
+                "contact": {
+                    "id": str(field.contact.id) if field.contact else None,
+                    "name": field.contact.name if field.contact else None,
+                    "email": field.contact.email if field.contact else None,
+                } if field.contact else None
+            }
+            placeholders_by_page[page].append(field_data)
+        
+        # Convert to array format expected by frontend
+        placeholders = []
+        for page_num, fields_list in placeholders_by_page.items():
+            placeholders.append({
+                "pageNumber": page_num,
+                "pos": fields_list
+            })
+        
+        return placeholders
+    
+    def get_recipients(self, obj):
+        """Return recipients (signers) in the format expected by the frontend"""
+        recipients = []
+        
+        # Add document owner as current user recipient
+        if obj.owner:
+            recipients.append({
+                "id": "recipient-current-user",
+                "name": f"{obj.owner.first_name or ''} {obj.owner.last_name or ''}".strip() or obj.owner.email,
+                "email": obj.owner.email,
+                "role": "Signer",
+                "fieldsAssigned": [],
+                "isCurrentUser": True
+            })
+        
+        # Add signers
+        for signer in obj.signers.all():
+            recipients.append({
+                "id": str(signer.id),
+                "name": signer.name,
+                "email": signer.email,
+                "role": "Signer",
+                "fieldsAssigned": [],
+                "isCurrentUser": False
+            })
+        
+        return recipients
+    
+    def get_public_submissions_count(self, obj):
+        """Return count of public form submissions"""
+        if obj.is_public:
+            return obj.public_submissions.count()
+        return 0
 
 
 class DocumentCreateSerializer(serializers.ModelSerializer):
@@ -190,7 +273,7 @@ class ContactSerializer(serializers.ModelSerializer):
 
 class DocumentFieldSerializer(serializers.ModelSerializer):
     widget_name = serializers.CharField(source="widget.name", read_only=True)
-    widget_type = serializers.CharField(source="widget.widget_type", read_only=True)
+    widget_type_display = serializers.CharField(source="widget.widget_type", read_only=True)
     widget_label = serializers.CharField(source="widget.label", read_only=True)
     contact_name = serializers.CharField(source="contact.name", read_only=True)
     contact_email = serializers.CharField(source="contact.email", read_only=True)
@@ -201,7 +284,8 @@ class DocumentFieldSerializer(serializers.ModelSerializer):
             "id", "document", "widget", "contact", "widget_type", "label", 
             "page_number", "x_position", "y_position", "width", "height",
             "recipient_id", "signature_data", "field_data", "value", 
-            "is_completed", "widget_name", "widget_label",
+            "is_completed", "scale", "is_stamp", "signature_type", "options",
+            "widget_name", "widget_type_display", "widget_label",
             "contact_name", "contact_email", "created_at", "updated_at"
         ]
         read_only_fields = ["id", "created_at", "updated_at"]
@@ -246,6 +330,86 @@ class DocumentFieldCreateSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
 
+class DocumentFieldBulkCreateSerializer(serializers.Serializer):
+    """Serializer for bulk creating document fields from PDF editor"""
+    placeholders = serializers.ListField(
+        child=serializers.DictField(),
+        write_only=True
+    )
+    recipients = serializers.ListField(
+        child=serializers.DictField(),
+        write_only=True
+    )
+
+    def create(self, validated_data):
+        document = self.context['document']
+        placeholders = validated_data['placeholders']
+        recipients = validated_data['recipients']
+        
+        created_fields = []
+        
+        # Create fields for each page
+        for page_data in placeholders:
+            page_number = page_data['pageNumber']
+            fields_data = page_data['pos']
+            
+            for field_data in fields_data:
+                # Create or get widget if needed
+                widget = None
+                if field_data.get('type'):
+                    widget, created = Widget.objects.get_or_create(
+                        name=field_data.get('options', {}).get('name', f"{field_data['type']}-{page_number}"),
+                        defaults={
+                            'widget_type': field_data['type'],
+                            'label': field_data.get('label', field_data['type'].title()),
+                            'placeholder': '',
+                            'required': field_data.get('options', {}).get('status') == 'required',
+                            'options': field_data.get('options', {})
+                        }
+                    )
+                
+                # Get contact based on recipient_id
+                contact = None
+                recipient_id = field_data.get('recipientId')
+                if recipient_id and recipient_id != 'recipient-current-user':
+                    # Check if recipient_id is a valid UUID (not a prefixed string)
+                    if not recipient_id.startswith('recipient-'):
+                        try:
+                            contact = Contact.objects.get(id=recipient_id, owner=self.context['request'].user)
+                        except (Contact.DoesNotExist, ValueError):
+                            # ValueError for invalid UUID format
+                            pass
+                
+                # Create document field
+                field_value = field_data.get('value', '') or field_data.get('response', '')
+                signature_data = field_data.get('signatureData', '') or field_data.get('signature_data', '')
+                
+                field = DocumentField.objects.create(
+                    document=document,
+                    widget=widget,
+                    contact=contact,
+                    widget_type=field_data.get('type'),
+                    label=field_data.get('label'),
+                    page_number=page_number,
+                    x_position=field_data.get('xPosition', 0),
+                    y_position=field_data.get('yPosition', 0),
+                    width=field_data.get('Width', 140),
+                    height=field_data.get('Height', 28),
+                    scale=field_data.get('scale', 1.0),
+                    is_stamp=field_data.get('isStamp', False),
+                    signature_type=field_data.get('signatureType'),
+                    recipient_id=recipient_id,
+                    options=field_data.get('options', {}),
+                    field_data=field_data.get('fieldData', {}),
+                    value=field_value,
+                    signature_data=signature_data,
+                    is_completed=bool(field_value or signature_data or field_data.get('isCompleted', False))
+                )
+                created_fields.append(field)
+        
+        return {'fields': created_fields, 'recipients': recipients}
+
+
 class DocumentSigningSessionSerializer(serializers.ModelSerializer):
     contact_name = serializers.CharField(source="contact.name", read_only=True)
     contact_email = serializers.CharField(source="contact.email", read_only=True)
@@ -267,7 +431,7 @@ class PublicFormSubmissionSerializer(serializers.ModelSerializer):
     class Meta:
         model = PublicFormSubmission
         fields = [
-            "id", "document", "submitter_name", "submitter_email", 
+            "id", "document", "submitter_name", "submitter_email", "submitter_phone",
             "field_data", "submitted_at", "document_title"
         ]
         read_only_fields = ["id", "submitted_at"]

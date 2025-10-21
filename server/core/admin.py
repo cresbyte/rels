@@ -7,6 +7,7 @@ admin.site.register(Document)
 admin.site.register(Contact)
 admin.site.register(Signature)
 admin.site.register(DocumentField)
+admin.site.register(PublicFormSubmission)
 
 
 admin.site.site_header = "RelaySign Admin"

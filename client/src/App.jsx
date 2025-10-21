@@ -21,6 +21,8 @@ import AboutUs from "./home/AboutUs";
 import NotFound from "./home/NotFound";
 import OpaigeLandingPage from "./home/OpaigeLandingPage";
 import CheckoutPage from "./dashboard/plans/CheckoutPage";
+import PublicForm from "./public/PublicForm";
+import SubmissionsPage from "./dashboard/documents/SubmissionsPage";
 // ScrollToTop component
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -126,6 +128,14 @@ function App() {
                   }
                 />
                 <Route
+                  path="/dashboard/documents/:id/submissions"
+                  element={
+                    <PrivateRoute>
+                      <SubmissionsPage />
+                    </PrivateRoute>
+                  }
+                />
+                <Route
                   path="/dashboard/profile"
                   element={
                     <PrivateRoute>
@@ -158,6 +168,7 @@ function App() {
                 />
                 <Route path="/checkout" element={<CheckoutPage/>} />
                 <Route path="/about" element={<AboutUs />} />
+                <Route path="/public-form/:public_token" element={<PublicForm />} />
 
                 <Route path="/" element={<OpaigeLandingPage />} />
                 <Route path="*" element={<NotFound />} />

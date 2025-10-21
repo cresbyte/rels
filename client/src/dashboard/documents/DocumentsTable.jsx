@@ -70,13 +70,13 @@ const getTypeConfig = (scenario, theme) => {
       color: "primary",
       backgroundColor: alpha(theme.palette.primary.main, 0.1),
     },
-    private: {
+    request: {
       label: "Multi-Signer",
       icon: <Users size={16} />,
       color: "secondary",
       backgroundColor: alpha(theme.palette.secondary.main, 0.1),
     },
-    public: {
+    template: {
       label: "Public Form",
       icon: <Globe size={16} />,
       color: "info",
@@ -117,29 +117,11 @@ const getStatusConfig = (status, theme) => {
   return configs[status] || configs.pending;
 };
 
-// Helper function to add dummy progress data to real documents
-const addDummyProgressData = (documents) => {
-  return documents.map((doc, index) => {
-    // Add dummy progress data based on document scenario
-    let progressData = {};
-    
-    if (doc.scenario === "private") {
-      // Dummy signers data for multi-signer documents
-      progressData.signers = [
-        { id: "s1", name: "Signer 1", status: index % 2 === 0 ? "signed" : "awaiting" },
-        { id: "s2", name: "Signer 2", status: "awaiting" },
-      ];
-      // Use real status from backend, don't override it
-    } else if (doc.scenario === "public") {
-      // Dummy submissions data for public forms
-      progressData.submissions = Math.floor(Math.random() * 50) + 1;
-      // Use real status from backend, don't override it
-    }
-    // For self-sign documents, use real status from backend
-    
+// Helper function to process real document data
+const processDocumentData = (documents) => {
+  return documents.map((doc) => {
     return {
       ...doc,
-      ...progressData,
       // Map scenario to type for compatibility with existing code
       type: doc.scenario,
     };
@@ -154,15 +136,19 @@ const DocumentTableRow = ({ document, onClick, theme }) => {
   // Calculate progress text
   let progressText = "N/A";
   const docType = document.scenario || document.type;
-  if (docType === "private" && document.signers) {
+  if (docType === "request" && document.signers) {
     const signedCount = document.signers.filter(
       (s) => s.status === "signed"
     ).length;
     progressText = `${signedCount}/${document.signers.length} signed`;
-  } else if (docType === "public") {
-    progressText = document.submissions
-      ? `${document.submissions} submissions`
+  } else if (docType === "template" && document.is_public) {
+    // For public forms, we'll show the submission count from the backend
+    // This will be populated when we add the submission count to the document serializer
+    progressText = document.public_submissions_count 
+      ? `${document.public_submissions_count} submissions`
       : "0 submissions";
+  } else if (docType === "self") {
+    progressText = document.status === "completed" ? "Completed" : "Pending";
   }
 
   return (
@@ -212,7 +198,7 @@ const DocumentTableRow = ({ document, onClick, theme }) => {
         <Typography variant="body2" fontWeight={500}>
           {progressText}
         </Typography>
-        {docType === "private" && document.signers && (
+        {docType === "request" && document.signers && (
           <Typography variant="caption" color="text.secondary">
             {document.signers.filter((s) => s.status === "awaiting").length}{" "}
             awaiting
@@ -271,8 +257,8 @@ const DocumentsTable = () => {
         setLoading(true);
         setError(null);
         const response = await api.get("documents/");
-        const documentsWithDummyData = addDummyProgressData(response.data.results);
-        setDocuments(documentsWithDummyData);
+        const processedDocuments = processDocumentData(response.data.results);
+        setDocuments(processedDocuments);
       } catch (err) {
         console.error("Error fetching documents:", err);
         setError("Failed to load documents. Please try again.");
@@ -292,9 +278,9 @@ const DocumentsTable = () => {
     if (activeTab === 1)
       filtered = filtered.filter((doc) => doc.scenario === "self");
     if (activeTab === 2)
-      filtered = filtered.filter((doc) => doc.scenario === "private");
+      filtered = filtered.filter((doc) => doc.scenario === "request");
     if (activeTab === 3)
-      filtered = filtered.filter((doc) => doc.scenario === "public");
+      filtered = filtered.filter((doc) => doc.scenario === "template" && doc.is_public);
 
     // Apply search filter
     if (searchTerm) {

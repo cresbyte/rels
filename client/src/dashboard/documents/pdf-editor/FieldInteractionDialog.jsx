@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -12,8 +12,14 @@ import {
   Tab,
   ToggleButtonGroup,
   ToggleButton,
+  Grid,
+  Card,
+  CardMedia,
+  CardContent,
+  CircularProgress,
 } from '@mui/material';
 import AddSign from '../../signatures/AddSign';
+import { useApi } from '../../../api/axios';
 
 const FieldInteractionDialog = ({
   open,
@@ -23,6 +29,10 @@ const FieldInteractionDialog = ({
 }) => {
   const [value, setValue] = useState('');
   const [showAddSign, setShowAddSign] = useState(false);
+  const [existingSignatures, setExistingSignatures] = useState([]);
+  const [loadingSignatures, setLoadingSignatures] = useState(false);
+  const [selectedTab, setSelectedTab] = useState(0);
+  const { api } = useApi();
 
   const handleSave = () => {
     if (field?.type === 'signature' || field?.type === 'initials') {
@@ -38,13 +48,40 @@ const FieldInteractionDialog = ({
   const handleClose = () => {
     setValue('');
     setShowAddSign(false);
+    setSelectedTab(0);
     onClose();
+  };
+
+  // Load existing signatures when dialog opens
+  useEffect(() => {
+    if (open && (field?.type === 'signature' || field?.type === 'initials')) {
+      loadExistingSignatures();
+    }
+  }, [open, field?.type]);
+
+  const loadExistingSignatures = async () => {
+    try {
+      setLoadingSignatures(true);
+      const response = await api.get('signatures/');
+      setExistingSignatures(response.data.results || []);
+    } catch (error) {
+      console.error('Error loading signatures:', error);
+      setExistingSignatures([]);
+    } finally {
+      setLoadingSignatures(false);
+    }
   };
 
   const handleSignatureSave = (signatureData) => {
     // signatureData contains: { name, image, type, font?, color? }
     // We use the image (dataURL) as the signature response
     onSave(signatureData.image);
+    handleClose();
+  };
+
+  const handleSelectExistingSignature = (signature) => {
+    // Use the signature image URL as the signature response
+    onSave(signature.image);
     handleClose();
   };
 
@@ -66,18 +103,67 @@ const FieldInteractionDialog = ({
         <DialogContent>
           <Box sx={{ pt: 2 }}>
             {isSignatureField ? (
-              <Box sx={{ textAlign: 'center', py: 4 }}>
-                <Typography variant="body1" sx={{ mb: 3 }}>
-                  {field.type === 'signature' ? 'Create your signature' : 'Create your initials'}
-                </Typography>
-                <Button
-                  variant="contained"
-                  onClick={handleSave}
-                  size="large"
-                  sx={{ minWidth: 200 }}
-                >
-                  Create Signature
-                </Button>
+              <Box>
+                <Tabs value={selectedTab} onChange={(e, newValue) => setSelectedTab(newValue)} sx={{ mb: 2 }}>
+                  <Tab label="Select Existing" />
+                  <Tab label="Create New" />
+                </Tabs>
+                
+                {selectedTab === 0 && (
+                  <Box>
+                    {loadingSignatures ? (
+                      <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                        <CircularProgress />
+                      </Box>
+                    ) : existingSignatures.length > 0 ? (
+                      <Grid container spacing={2}>
+                        {existingSignatures.map((signature) => (
+                          <Grid item xs={6} sm={4} key={signature.id}>
+                            <Card 
+                              sx={{ cursor: 'pointer', '&:hover': { boxShadow: 3 } }}
+                              onClick={() => handleSelectExistingSignature(signature)}
+                            >
+                              <CardMedia
+                                component="img"
+                                height="100"
+                                image={signature.image}
+                                alt={signature.name}
+                                sx={{ objectFit: 'contain' }}
+                              />
+                              <CardContent sx={{ p: 1 }}>
+                                <Typography variant="caption" align="center" display="block">
+                                  {signature.name}
+                                </Typography>
+                              </CardContent>
+                            </Card>
+                          </Grid>
+                        ))}
+                      </Grid>
+                    ) : (
+                      <Box sx={{ textAlign: 'center', py: 4 }}>
+                        <Typography variant="body2" color="text.secondary">
+                          No existing signatures found. Create a new one using the "Create New" tab.
+                        </Typography>
+                      </Box>
+                    )}
+                  </Box>
+                )}
+                
+                {selectedTab === 1 && (
+                  <Box sx={{ textAlign: 'center', py: 4 }}>
+                    <Typography variant="body1" sx={{ mb: 3 }}>
+                      {field.type === 'signature' ? 'Create your signature' : 'Create your initials'}
+                    </Typography>
+                    <Button
+                      variant="contained"
+                      onClick={handleSave}
+                      size="large"
+                      sx={{ minWidth: 200 }}
+                    >
+                      Create Signature
+                    </Button>
+                  </Box>
+                )}
               </Box>
             ) : (
               <TextField

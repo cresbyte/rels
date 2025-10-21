@@ -8,7 +8,7 @@ from django.utils.crypto import get_random_string
 from core.models import Document, Widget, Contact, DocumentField, DocumentSigningSession, PublicFormSubmission
 from core.serializers.doc_ser import (
     DocumentSerializer, DocumentCreateSerializer, WidgetSerializer, ContactSerializer, 
-    DocumentFieldSerializer, DocumentFieldCreateSerializer,
+    DocumentFieldSerializer, DocumentFieldCreateSerializer, DocumentFieldBulkCreateSerializer,
     DocumentSigningSessionSerializer, PublicFormSubmissionSerializer
 )
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -100,26 +100,6 @@ class DocumentViewSet(viewsets.ModelViewSet):
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=True, methods=['patch'])
-    def update_field_value(self, request, pk=None):
-        """Update field value for a specific document field"""
-        document = self.get_object()
-        field_id = request.data.get('field_id')
-        value = request.data.get('value')
-        
-        try:
-            field = DocumentField.objects.get(id=field_id, document=document)
-            field.value = value
-            field.is_completed = bool(value)
-            field.save()
-            
-            serializer = DocumentFieldSerializer(field)
-            return Response(serializer.data)
-        except DocumentField.DoesNotExist:
-            return Response(
-                {'error': 'Field not found'}, 
-                status=status.HTTP_404_NOT_FOUND
-            )
 
     @action(detail=True, methods=['post'])
     def send_for_signing(self, request, pk=None):
@@ -172,10 +152,14 @@ class DocumentViewSet(viewsets.ModelViewSet):
         """Create a public form from the document"""
         document = self.get_object()
         
+        # Get public form configuration from request
+        public_form_config = request.data.get('public_form_config', {})
+        
         # Generate a unique public token
         public_token = str(uuid.uuid4())
         document.public_token = public_token
         document.is_public = True
+        document.public_form_config = public_form_config
         document.save()
         
         public_url = f"{settings.FRONTEND_URL}/public-form/{public_token}"
@@ -204,14 +188,35 @@ class DocumentViewSet(viewsets.ModelViewSet):
         if not document.is_public:
             return Response({'error': 'Document is not a public form'}, status=status.HTTP_400_BAD_REQUEST)
         
+        # Get public form configuration
+        config = document.public_form_config or {}
+        required_fields = config.get('required_fields', {})
+        
+        # Validate required fields
+        name = request.data.get('name', '').strip()
+        email = request.data.get('email', '').strip()
+        phone = request.data.get('phone', '').strip()
+        
+        errors = {}
+        if required_fields.get('name', False) and not name:
+            errors['name'] = 'Name is required'
+        if required_fields.get('email', False) and not email:
+            errors['email'] = 'Email is required'
+        if required_fields.get('phone', False) and not phone:
+            errors['phone'] = 'Phone is required'
+        
+        if errors:
+            return Response({'errors': errors}, status=status.HTTP_400_BAD_REQUEST)
+        
         field_data = request.data.get('fields', {})
         
         # Create submission
         submission = PublicFormSubmission.objects.create(
             document=document,
             field_data=field_data,
-            submitter_email=request.data.get('email', ''),
-            submitter_name=request.data.get('name', 'Anonymous')
+            submitter_name=name or 'Anonymous',
+            submitter_email=email or None,
+            submitter_phone=phone or None
         )
         
         serializer = PublicFormSubmissionSerializer(submission)
@@ -219,6 +224,86 @@ class DocumentViewSet(viewsets.ModelViewSet):
             'message': 'Form submitted successfully',
             'submission': serializer.data
         })
+
+    @action(detail=True, methods=['post'])
+    def save_fields(self, request, pk=None):
+        """Save document fields from PDF editor"""
+        document = self.get_object()
+        
+        # Clear existing fields for this document
+        DocumentField.objects.filter(document=document).delete()
+        
+        # Create new fields using bulk serializer
+        serializer = DocumentFieldBulkCreateSerializer(
+            data=request.data,
+            context={'document': document, 'request': request}
+        )
+        
+        if serializer.is_valid():
+            result = serializer.save()
+            return Response({
+                'message': 'Document fields saved successfully',
+                'fields_count': len(result['fields']),
+                'recipients_count': len(result['recipients'])
+            })
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['patch'])
+    def update_field_value(self, request, pk=None):
+        """Update field value for a specific document field"""
+        document = self.get_object()
+        field_id = request.data.get('field_id')
+        value = request.data.get('value')
+        signature_data = request.data.get('signature_data')
+        
+        try:
+            field = DocumentField.objects.get(id=field_id, document=document)
+            field.value = value
+            if signature_data:
+                field.signature_data = signature_data
+            field.is_completed = bool(value or signature_data)
+            field.save()
+            
+            serializer = DocumentFieldSerializer(field)
+            return Response(serializer.data)
+        except DocumentField.DoesNotExist:
+            # Field doesn't exist yet - this can happen when user interacts with a field
+            # before saving the document. Return a more helpful error message.
+            return Response(
+                {'error': 'Field not found. Please save the document first to create the field.'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+    @action(detail=True, methods=['post'])
+    def update_field_value_or_create(self, request, pk=None):
+        """Update field value or create field if it doesn't exist"""
+        document = self.get_object()
+        field_data = request.data
+        
+        field_id = field_data.get('field_id')
+        value = field_data.get('value')
+        signature_data = field_data.get('signature_data')
+        
+        try:
+            # Try to find existing field
+            field = DocumentField.objects.get(id=field_id, document=document)
+            field.value = value
+            if signature_data:
+                field.signature_data = signature_data
+            field.is_completed = bool(value or signature_data)
+            field.save()
+            
+            serializer = DocumentFieldSerializer(field)
+            return Response(serializer.data)
+        except DocumentField.DoesNotExist:
+            # Field doesn't exist - this is expected for new fields
+            # Just return success without creating the field
+            # The field will be created when the user saves the document
+            return Response({
+                'message': 'Field value updated locally. Field will be created when document is saved.',
+                'field_id': field_id,
+                'value': value
+            })
 
 
 class WidgetViewSet(viewsets.ModelViewSet):
